@@ -30,15 +30,15 @@ static uint8_t port_in(void *userdata, uint8_t port)
 {
 	struct i8080 *const c = (struct i8080 *) userdata;
 
-	uint8_t operation = c->c;
+	uint8_t operation = c->r.eg8[REG_C];
 
 	// print a character stored in E
 	if (operation == 2)
-		printf("%c", c->e);
+		printf("%c", c->r.eg8[REG_E]);
 
 	// print from memory at (DE) until '$' char
 	else if (operation == 9) {
-		uint16_t addr = (c->d << 8) | c->e;
+		uint16_t addr = (c->r.eg8[REG_D] << 8) | c->r.eg8[REG_E];
 		do {
 			printf("%c", rb(c, addr++));
 		} while (rb(c, addr) != '$');
