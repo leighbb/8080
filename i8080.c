@@ -117,40 +117,6 @@ static inline uint16_t i8080_next_word(struct i8080 *const c)
 	return result;
 }
 
-// paired registers helpers (setters and getters)
-static inline void i8080_set_bc(struct i8080 *const c, const uint16_t val)
-{
-	c->r.eg8[REG_B] = val >> 8;
-	c->r.eg8[REG_C] = val & 0xFF;
-}
-
-static inline void i8080_set_de(struct i8080 *const c, const uint16_t val)
-{
-	c->r.eg8[REG_D] = val >> 8;
-	c->r.eg8[REG_E] = val & 0xFF;
-}
-
-static inline void i8080_set_hl(struct i8080 *const c, const uint16_t val)
-{
-	c->r.eg8[REG_H] = val >> 8;
-	c->r.eg8[REG_L] = val & 0xFF;
-}
-
-static inline uint16_t i8080_get_bc(struct i8080 *const c)
-{
-	return (c->r.eg8[REG_B] << 8) | c->r.eg8[REG_C];
-}
-
-static inline uint16_t i8080_get_de(struct i8080 *const c)
-{
-	return (c->r.eg8[REG_D] << 8) | c->r.eg8[REG_E];
-}
-
-static inline uint16_t i8080_get_hl(struct i8080 *const c)
-{
-	return (c->r.eg8[REG_H] << 8) | c->r.eg8[REG_L];
-}
-
 /*
  * stack helpers
  */
@@ -219,8 +185,8 @@ static inline void i8080_sub(struct i8080 *const c, uint8_t * const reg,
 // adds a word to HL
 static inline void i8080_dad(struct i8080 *const c, uint16_t val)
 {
-	c->cf = ((i8080_get_hl(c) + val) >> 16) & 1;
-	i8080_set_hl(c, i8080_get_hl(c) + val);
+	c->cf = ((c->r.eg16[REG_HL] + val) >> 16) & 1;
+	c->r.eg16[REG_HL] += val;
 }
 
 // increments a byte
@@ -421,17 +387,17 @@ static inline void i8080_daa(struct i8080 *const c)
 // switches the value of registers DE and HL
 static inline void i8080_xchg(struct i8080 *const c)
 {
-	const uint16_t de = i8080_get_de(c);
-	i8080_set_de(c, i8080_get_hl(c));
-	i8080_set_hl(c, de);
+	const uint16_t de = c->r.eg16[REG_DE];
+	c->r.eg16[REG_DE] = c->r.eg16[REG_HL];
+	c->r.eg16[REG_HL] = de;
 }
 
 // switches the value of a word at (sp) and HL
 static inline void i8080_xthl(struct i8080 *const c)
 {
 	const uint16_t val = i8080_rw(c, c->r.eg16[REG_SP]);
-	i8080_ww(c, c->r.eg16[REG_SP], i8080_get_hl(c));
-	i8080_set_hl(c, val);
+	i8080_ww(c, c->r.eg16[REG_SP], c->r.eg16[REG_HL]);
+	c->r.eg16[REG_HL] = val;
 }
 
 // executes one opcode
@@ -470,14 +436,14 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		c->r.eg8[REG_A] = c->r.eg8[REG_L];
 		break;		// MOV A,L
 	case 0x7E:
-		c->r.eg8[REG_A] = i8080_rb(c, i8080_get_hl(c));
+		c->r.eg8[REG_A] = i8080_rb(c, c->r.eg16[REG_HL]);
 		break;		// MOV A,M
 
 	case 0x0A:
-		c->r.eg8[REG_A] = i8080_rb(c, i8080_get_bc(c));
+		c->r.eg8[REG_A] = i8080_rb(c, c->r.eg16[REG_BC]);
 		break;		// LDAX B
 	case 0x1A:
-		c->r.eg8[REG_A] = i8080_rb(c, i8080_get_de(c));
+		c->r.eg8[REG_A] = i8080_rb(c, c->r.eg16[REG_DE]);
 		break;		// LDAX D
 	case 0x3A:
 		c->r.eg8[REG_A] = i8080_rb(c, i8080_next_word(c));
@@ -505,7 +471,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		c->r.eg8[REG_B] = c->r.eg8[REG_L];
 		break;		// MOV B,L
 	case 0x46:
-		c->r.eg8[REG_B] = i8080_rb(c, i8080_get_hl(c));
+		c->r.eg8[REG_B] = i8080_rb(c, c->r.eg16[REG_HL]);
 		break;		// MOV B,M
 
 	case 0x4F:
@@ -530,7 +496,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		c->r.eg8[REG_C] = c->r.eg8[REG_L];
 		break;		// MOV C,L
 	case 0x4E:
-		c->r.eg8[REG_C] = i8080_rb(c, i8080_get_hl(c));
+		c->r.eg8[REG_C] = i8080_rb(c, c->r.eg16[REG_HL]);
 		break;		// MOV C,M
 
 	case 0x57:
@@ -555,7 +521,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		c->r.eg8[REG_D] = c->r.eg8[REG_L];
 		break;		// MOV D,L
 	case 0x56:
-		c->r.eg8[REG_D] = i8080_rb(c, i8080_get_hl(c));
+		c->r.eg8[REG_D] = i8080_rb(c, c->r.eg16[REG_HL]);
 		break;		// MOV D,M
 
 	case 0x5F:
@@ -580,7 +546,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		c->r.eg8[REG_E] = c->r.eg8[REG_L];
 		break;		// MOV E,L
 	case 0x5E:
-		c->r.eg8[REG_E] = i8080_rb(c, i8080_get_hl(c));
+		c->r.eg8[REG_E] = i8080_rb(c, c->r.eg16[REG_HL]);
 		break;		// MOV E,M
 
 	case 0x67:
@@ -605,7 +571,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		c->r.eg8[REG_H] = c->r.eg8[REG_L];
 		break;		// MOV H,L
 	case 0x66:
-		c->r.eg8[REG_H] = i8080_rb(c, i8080_get_hl(c));
+		c->r.eg8[REG_H] = i8080_rb(c, c->r.eg16[REG_HL]);
 		break;		// MOV H,M
 
 	case 0x6F:
@@ -630,29 +596,29 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		c->r.eg8[REG_L] = c->r.eg8[REG_L];
 		break;		// MOV L,L
 	case 0x6E:
-		c->r.eg8[REG_L] = i8080_rb(c, i8080_get_hl(c));
+		c->r.eg8[REG_L] = i8080_rb(c, c->r.eg16[REG_HL]);
 		break;		// MOV L,M
 
 	case 0x77:
-		i8080_wb(c, i8080_get_hl(c), c->r.eg8[REG_A]);
+		i8080_wb(c, c->r.eg16[REG_HL], c->r.eg8[REG_A]);
 		break;		// MOV M,A
 	case 0x70:
-		i8080_wb(c, i8080_get_hl(c), c->r.eg8[REG_B]);
+		i8080_wb(c, c->r.eg16[REG_HL], c->r.eg8[REG_B]);
 		break;		// MOV M,B
 	case 0x71:
-		i8080_wb(c, i8080_get_hl(c), c->r.eg8[REG_C]);
+		i8080_wb(c, c->r.eg16[REG_HL], c->r.eg8[REG_C]);
 		break;		// MOV M,C
 	case 0x72:
-		i8080_wb(c, i8080_get_hl(c), c->r.eg8[REG_D]);
+		i8080_wb(c, c->r.eg16[REG_HL], c->r.eg8[REG_D]);
 		break;		// MOV M,D
 	case 0x73:
-		i8080_wb(c, i8080_get_hl(c), c->r.eg8[REG_E]);
+		i8080_wb(c, c->r.eg16[REG_HL], c->r.eg8[REG_E]);
 		break;		// MOV M,E
 	case 0x74:
-		i8080_wb(c, i8080_get_hl(c), c->r.eg8[REG_H]);
+		i8080_wb(c, c->r.eg16[REG_HL], c->r.eg8[REG_H]);
 		break;		// MOV M,H
 	case 0x75:
-		i8080_wb(c, i8080_get_hl(c), c->r.eg8[REG_L]);
+		i8080_wb(c, c->r.eg16[REG_HL], c->r.eg8[REG_L]);
 		break;		// MOV M,L
 
 	case 0x3E:
@@ -677,14 +643,14 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		c->r.eg8[REG_L] = i8080_next_byte(c);
 		break;		// MVI L,byte
 	case 0x36:
-		i8080_wb(c, i8080_get_hl(c), i8080_next_byte(c));
+		i8080_wb(c, c->r.eg16[REG_HL], i8080_next_byte(c));
 		break;		// MVI M,byte
 
 	case 0x02:
-		i8080_wb(c, i8080_get_bc(c), c->r.eg8[REG_A]);
+		i8080_wb(c, c->r.eg16[REG_BC], c->r.eg8[REG_A]);
 		break;		// STAX B
 	case 0x12:
-		i8080_wb(c, i8080_get_de(c), c->r.eg8[REG_A]);
+		i8080_wb(c, c->r.eg16[REG_DE], c->r.eg8[REG_A]);
 		break;		// STAX D
 	case 0x32:
 		i8080_wb(c, i8080_next_word(c), c->r.eg8[REG_A]);
@@ -692,25 +658,25 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 
 		// 16 bit transfer instructions
 	case 0x01:
-		i8080_set_bc(c, i8080_next_word(c));
+		c->r.eg16[REG_BC] = i8080_next_word(c);
 		break;		// LXI B,word
 	case 0x11:
-		i8080_set_de(c, i8080_next_word(c));
+		c->r.eg16[REG_DE] = i8080_next_word(c);
 		break;		// LXI D,word
 	case 0x21:
-		i8080_set_hl(c, i8080_next_word(c));
+		c->r.eg16[REG_HL] = i8080_next_word(c);
 		break;		// LXI H,word
 	case 0x31:
 		c->r.eg16[REG_SP] = i8080_next_word(c);
 		break;		// LXI SP,word
 	case 0x2A:
-		i8080_set_hl(c, i8080_rw(c, i8080_next_word(c)));
+		c->r.eg16[REG_HL] = i8080_rw(c, i8080_next_word(c));
 		break;		// LHLD
 	case 0x22:
-		i8080_ww(c, i8080_next_word(c), i8080_get_hl(c));
+		i8080_ww(c, i8080_next_word(c), c->r.eg16[REG_HL]);
 		break;		// SHLD
 	case 0xF9:
-		c->r.eg16[REG_SP] = i8080_get_hl(c);
+		c->r.eg16[REG_SP] = c->r.eg16[REG_HL];
 		break;		// SPHL
 
 		// register exchange instructions
@@ -744,7 +710,8 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		i8080_add(c, &c->r.eg8[REG_A], c->r.eg8[REG_L], 0);
 		break;		// ADD L
 	case 0x86:
-		i8080_add(c, &c->r.eg8[REG_A], i8080_rb(c, i8080_get_hl(c)), 0);
+		i8080_add(c, &c->r.eg8[REG_A],
+			  i8080_rb(c, c->r.eg16[REG_HL]), 0);
 		break;		// ADD M
 	case 0xC6:
 		i8080_add(c, &c->r.eg8[REG_A], i8080_next_byte(c), 0);
@@ -773,7 +740,8 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		i8080_add(c, &c->r.eg8[REG_A], c->r.eg8[REG_L], c->cf);
 		break;		// ADC L
 	case 0x8E:
-		i8080_add(c, &c->r.eg8[REG_A], i8080_rb(c, i8080_get_hl(c)), c->cf);
+		i8080_add(c, &c->r.eg8[REG_A],
+			  i8080_rb(c, c->r.eg16[REG_HL]), c->cf);
 		break;		// ADC M
 	case 0xCE:
 		i8080_add(c, &c->r.eg8[REG_A], i8080_next_byte(c), c->cf);
@@ -802,7 +770,8 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		i8080_sub(c, &c->r.eg8[REG_A], c->r.eg8[REG_L], 0);
 		break;		// SUB L
 	case 0x96:
-		i8080_sub(c, &c->r.eg8[REG_A], i8080_rb(c, i8080_get_hl(c)), 0);
+		i8080_sub(c, &c->r.eg8[REG_A],
+			  i8080_rb(c, c->r.eg16[REG_HL]), 0);
 		break;		// SUB M
 	case 0xD6:
 		i8080_sub(c, &c->r.eg8[REG_A], i8080_next_byte(c), 0);
@@ -831,7 +800,8 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		i8080_sub(c, &c->r.eg8[REG_A], c->r.eg8[REG_L], c->cf);
 		break;		// SBB L
 	case 0x9E:
-		i8080_sub(c, &c->r.eg8[REG_A], i8080_rb(c, i8080_get_hl(c)), c->cf);
+		i8080_sub(c, &c->r.eg8[REG_A],
+			  i8080_rb(c, c->r.eg16[REG_HL]), c->cf);
 		break;		// SBB M
 	case 0xDE:
 		i8080_sub(c, &c->r.eg8[REG_A], i8080_next_byte(c), c->cf);
@@ -839,13 +809,13 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 
 		// double byte add instructions
 	case 0x09:
-		i8080_dad(c, i8080_get_bc(c));
+		i8080_dad(c, c->r.eg16[REG_BC]);
 		break;		// DAD B
 	case 0x19:
-		i8080_dad(c, i8080_get_de(c));
+		i8080_dad(c, c->r.eg16[REG_DE]);
 		break;		// DAD D
 	case 0x29:
-		i8080_dad(c, i8080_get_hl(c));
+		i8080_dad(c, c->r.eg16[REG_HL]);
 		break;		// DAD H
 	case 0x39:
 		i8080_dad(c, c->r.eg16[REG_SP]);
@@ -888,8 +858,8 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		c->r.eg8[REG_L] = i8080_inr(c, c->r.eg8[REG_L]);
 		break;		// INR L
 	case 0x34:
-		i8080_wb(c, i8080_get_hl(c),
-			 i8080_inr(c, i8080_rb(c, i8080_get_hl(c))));
+		i8080_wb(c, c->r.eg16[REG_HL],
+			 i8080_inr(c, i8080_rb(c, c->r.eg16[REG_HL])));
 		break;		// INR M
 
 		// decrement byte instructions
@@ -915,19 +885,19 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		c->r.eg8[REG_L] = i8080_dcr(c, c->r.eg8[REG_L]);
 		break;		// DCR L
 	case 0x35:
-		i8080_wb(c, i8080_get_hl(c),
-			 i8080_dcr(c, i8080_rb(c, i8080_get_hl(c))));
+		i8080_wb(c, c->r.eg16[REG_HL],
+			 i8080_dcr(c, i8080_rb(c, c->r.eg16[REG_HL])));
 		break;		// DCR M
 
 		// increment register pair instructions
 	case 0x03:
-		i8080_set_bc(c, i8080_get_bc(c) + 1);
+		c->r.eg16[REG_BC] += 1;
 		break;		// INX B
 	case 0x13:
-		i8080_set_de(c, i8080_get_de(c) + 1);
+		c->r.eg16[REG_DE] += 1;
 		break;		// INX D
 	case 0x23:
-		i8080_set_hl(c, i8080_get_hl(c) + 1);
+		c->r.eg16[REG_HL] += 1;
 		break;		// INX H
 	case 0x33:
 		c->r.eg16[REG_SP] += 1;
@@ -935,13 +905,13 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 
 		// decrement register pair instructions
 	case 0x0B:
-		i8080_set_bc(c, i8080_get_bc(c) - 1);
+		c->r.eg16[REG_BC] -= 1;
 		break;		// DCX B
 	case 0x1B:
-		i8080_set_de(c, i8080_get_de(c) - 1);
+		c->r.eg16[REG_DE] -= 1;
 		break;		// DCX D
 	case 0x2B:
-		i8080_set_hl(c, i8080_get_hl(c) - 1);
+		c->r.eg16[REG_HL] -= 1;
 		break;		// DCX H
 	case 0x3B:
 		c->r.eg16[REG_SP] -= 1;
@@ -998,7 +968,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		i8080_ana(c, c->r.eg8[REG_L]);
 		break;		// ANA L
 	case 0xA6:
-		i8080_ana(c, i8080_rb(c, i8080_get_hl(c)));
+		i8080_ana(c, i8080_rb(c, c->r.eg16[REG_HL]));
 		break;		// ANA M
 	case 0xE6:
 		i8080_ana(c, i8080_next_byte(c));
@@ -1026,7 +996,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		i8080_xra(c, c->r.eg8[REG_L]);
 		break;		// XRA L
 	case 0xAE:
-		i8080_xra(c, i8080_rb(c, i8080_get_hl(c)));
+		i8080_xra(c, i8080_rb(c, c->r.eg16[REG_HL]));
 		break;		// XRA M
 	case 0xEE:
 		i8080_xra(c, i8080_next_byte(c));
@@ -1054,7 +1024,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		i8080_ora(c, c->r.eg8[REG_L]);
 		break;		// ORA L
 	case 0xB6:
-		i8080_ora(c, i8080_rb(c, i8080_get_hl(c)));
+		i8080_ora(c, i8080_rb(c, c->r.eg16[REG_HL]));
 		break;		// ORA M
 	case 0xF6:
 		i8080_ora(c, i8080_next_byte(c));
@@ -1082,7 +1052,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		i8080_cmp(c, c->r.eg8[REG_L]);
 		break;		// CMP L
 	case 0xBE:
-		i8080_cmp(c, i8080_rb(c, i8080_get_hl(c)));
+		i8080_cmp(c, i8080_rb(c, c->r.eg16[REG_HL]));
 		break;		// CMP M
 	case 0xFE:
 		i8080_cmp(c, i8080_next_byte(c));
@@ -1118,7 +1088,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		break;		// JM
 
 	case 0xE9:
-		c->pc = i8080_get_hl(c);
+		c->pc = c->r.eg16[REG_HL];
 		break;		// PCHL
 	case 0xCD:
 		i8080_call(c, i8080_next_word(c));
@@ -1204,25 +1174,25 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 
 		// stack operation instructions
 	case 0xC5:
-		i8080_push_stack(c, i8080_get_bc(c));
+		i8080_push_stack(c, c->r.eg16[REG_BC]);
 		break;		// PUSH B
 	case 0xD5:
-		i8080_push_stack(c, i8080_get_de(c));
+		i8080_push_stack(c, c->r.eg16[REG_DE]);
 		break;		// PUSH D
 	case 0xE5:
-		i8080_push_stack(c, i8080_get_hl(c));
+		i8080_push_stack(c, c->r.eg16[REG_HL]);
 		break;		// PUSH H
 	case 0xF5:
 		i8080_push_psw(c);
 		break;		// PUSH PSW
 	case 0xC1:
-		i8080_set_bc(c, i8080_pop_stack(c));
+		c->r.eg16[REG_BC] = i8080_pop_stack(c);
 		break;		// POP B
 	case 0xD1:
-		i8080_set_de(c, i8080_pop_stack(c));
+		c->r.eg16[REG_DE] = i8080_pop_stack(c);
 		break;		// POP D
 	case 0xE1:
-		i8080_set_hl(c, i8080_pop_stack(c));
+		c->r.eg16[REG_HL] = i8080_pop_stack(c);
 		break;		// POP H
 	case 0xF1:
 		i8080_pop_psw(c);
@@ -1339,8 +1309,8 @@ void i8080_debug_output(struct i8080 *const c)
 
 	printf("PC: %04X, AF: %04X, BC: %04X, "
 	       "DE: %04X, HL: %04X, SP: %04X, CYC: %lu",
-	     c->pc, c->r.eg8[REG_A] << 8 | f, i8080_get_bc(c), i8080_get_de(c),
-	     i8080_get_hl(c), c->r.eg16[REG_SP], c->cyc);
+	     c->pc, c->r.eg8[REG_A] << 8 | f, c->r.eg16[REG_BC],
+	     c->r.eg16[REG_DE], c->r.eg16[REG_HL], c->r.eg16[REG_SP], c->cyc);
 
 	printf("\t(%02X %02X %02X %02X)",
 	       i8080_rb(c, c->pc),
