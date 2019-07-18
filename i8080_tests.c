@@ -120,8 +120,10 @@ static void run_test(struct i8080 *const c, const char *filename,
 		 * uncomment the following line to have a debug output of 
 		 * the Z80 state.  Warning: will output multiple GB of data 
 		 * for the whole test suite
-		 * i8080_debug_output(c);
 		 */
+#ifdef I8080_DEBUG_OUTPUT
+		i8080_debug_output(c);
+#endif
 		i8080_step(c);
 	}
 

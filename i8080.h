@@ -78,6 +78,9 @@ struct i8080 {
 void i8080_init(struct i8080 *const c);
 void i8080_step(struct i8080 *const c);
 void i8080_interrupt(struct i8080 *const c, uint8_t opcode);
+
+#ifdef I8080_DEBUG_OUTPUT
 void i8080_debug_output(struct i8080 *const c);
+#endif
 
 #endif // I8080_I8080_H_

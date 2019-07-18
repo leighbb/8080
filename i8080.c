@@ -27,44 +27,45 @@ static const uint8_t OPCODES_CYCLES[] = {
 	 5, 10, 10,  4, 11, 11,  7, 11,  5,  5, 10,  4, 11, 17,  7, 11	// F
 };
 
-#define PRINT_DISASSEMBLY_IN_DEBUG_OUTPUT 0
-static const char *DISASSEMBLE_TABLE[] = {
-	"nop", "lxi b,#", "stax b", "inx b", "inr b", "dcr b", "mvi b,#", "rlc",
-	"ill", "dad b", "ldax b", "dcx b", "inr c", "dcr c", "mvi c,#", "rrc",
-	"ill", "lxi d,#", "stax d", "inx d", "inr d", "dcr d", "mvi d,#", "ral",
-	"ill", "dad d", "ldax d", "dcx d", "inr e", "dcr e", "mvi e,#", "rar",
-	"ill", "lxi h,#", "shld", "inx h", "inr h", "dcr h", "mvi h,#", "daa",
-	"ill", "dad h", "lhld", "dcx h", "inr l", "dcr l", "mvi l,#", "cma",
-	"ill", "lxi sp,#", "sta $", "inx sp", "inr M", "dcr M", "mvi M,#",
-	"stc", "ill", "dad sp", "lda $", "dcx sp", "inr a", "dcr a", "mvi a,#",
-	"cmc", "mov b,b", "mov b,c", "mov b,d", "mov b,e", "mov b,h", "mov b,l",
-	"mov b,M", "mov b,a", "mov c,b", "mov c,c", "mov c,d", "mov c,e",
-	"mov c,h", "mov c,l", "mov c,M", "mov c,a", "mov d,b", "mov d,c",
-	"mov d,d", "mov d,e", "mov d,h", "mov d,l", "mov d,M", "mov d,a",
-	"mov e,b", "mov e,c", "mov e,d", "mov e,e", "mov e,h", "mov e,l",
-	"mov e,M", "mov e,a", "mov h,b", "mov h,c", "mov h,d", "mov h,e",
-	"mov h,h", "mov h,l", "mov h,M", "mov h,a", "mov l,b", "mov l,c",
-	"mov l,d", "mov l,e", "mov l,h", "mov l,l", "mov l,M", "mov l,a",
-	"mov M,b", "mov M,c", "mov M,d", "mov M,e", "mov M,h", "mov M,l", "hlt",
-	"mov M,a", "mov a,b", "mov a,c", "mov a,d", "mov a,e", "mov a,h",
-	"mov a,l", "mov a,M", "mov a,a", "add b", "add c", "add d", "add e",
-	"add h", "add l", "add M", "add a", "adc b", "adc c", "adc d", "adc e",
-	"adc h", "adc l", "adc M", "adc a", "sub b", "sub c", "sub d", "sub e",
-	"sub h", "sub l", "sub M", "sub a", "sbb b", "sbb c", "sbb d", "sbb e",
-	"sbb h", "sbb l", "sbb M", "sbb a", "ana b", "ana c", "ana d", "ana e",
-	"ana h", "ana l", "ana M", "ana a", "xra b", "xra c", "xra d", "xra e",
-	"xra h", "xra l", "xra M", "xra a", "ora b", "ora c", "ora d", "ora e",
-	"ora h", "ora l", "ora M", "ora a", "cmp b", "cmp c", "cmp d", "cmp e",
-	"cmp h", "cmp l", "cmp M", "cmp a", "rnz", "pop b", "jnz $", "jmp $",
-	"cnz $", "push b", "adi #", "rst 0", "rz", "ret", "jz $", "ill", "cz $",
-	"call $", "aci #", "rst 1", "rnc", "pop d", "jnc $", "out p", "cnc $",
-	"push d", "sui #", "rst 2", "rc", "ill", "jc $", "in p", "cc $", "ill",
-	"sbi #", "rst 3", "rpo", "pop h", "jpo $", "xthl", "cpo $", "push h",
-	"ani #", "rst 4", "rpe", "pchl", "jpe $", "xchg", "cpe $", "ill",
-	"xri #", "rst 5", "rp", "pop psw", "jp $", "di", "cp $", "push psw",
-	"ori #", "rst 6", "rm", "sphl", "jm $", "ei", "cm $", "ill", "cpi #",
-	"rst 7"
+#ifdef I8080_DEBUG_OUTPUT
+static const char* DISASSEMBLE_TABLE[] = {
+	"nop", "lxi b,$", "stax b", "inx b", "inr b", "dcr b", "mvi b,#", "rlc",
+	"*nop", "dad b", "ldax b", "dcx b", "inr c", "dcr c", "mvi c,#", "rrc",
+	"*nop", "lxi d,$", "stax d", "inx d", "inr d", "dcr d", "mvi d,#",
+	"ral", "*nop", "dad d", "ldax d", "dcx d", "inr e", "dcr e", "mvi e,#",
+	"rar", "*nop", "lxi h,$", "shld", "inx h", "inr h", "dcr h", "mvi h,#",
+	"daa", "*nop", "dad h", "lhld", "dcx h", "inr l", "dcr l", "mvi l,#",
+	"cma", "*nop", "lxi sp,$","sta $", "inx sp", "inr m", "dcr m",
+	"mvi m,#", "stc", "*nop", "dad sp", "lda $", "dcx sp", "inr a", "dcr a",
+	"mvi a,#", "cmc", "mov b,b", "mov b,c", "mov b,d", "mov b,e", "mov b,h",
+	"mov b,l", "mov b,m", "mov b,a", "mov c,b", "mov c,c", "mov c,d",
+	"mov c,e", "mov c,h", "mov c,l", "mov c,m", "mov c,a", "mov d,b",
+	"mov d,c", "mov d,d", "mov d,e", "mov d,h", "mov d,l", "mov d,m",
+	"mov d,a", "mov e,b", "mov e,c", "mov e,d", "mov e,e", "mov e,h",
+	"mov e,l", "mov e,m", "mov e,a", "mov h,b", "mov h,c", "mov h,d",
+	"mov h,e", "mov h,h", "mov h,l", "mov h,m", "mov h,a", "mov l,b",
+	"mov l,c", "mov l,d", "mov l,e", "mov l,h", "mov l,l", "mov l,m",
+	"mov l,a", "mov m,b", "mov m,c", "mov m,d", "mov m,e", "mov m,h",
+	"mov m,l", "hlt", "mov m,a", "mov a,b", "mov a,c", "mov a,d", "mov a,e",
+	"mov a,h", "mov a,l", "mov a,m", "mov a,a", "add b", "add c", "add d",
+	"add e", "add h", "add l", "add m", "add a", "adc b", "adc c", "adc d",
+	"adc e", "adc h", "adc l", "adc m", "adc a", "sub b", "sub c", "sub d",
+	"sub e", "sub h", "sub l", "sub m", "sub a", "sbb b", "sbb c", "sbb d",
+	"sbb e", "sbb h", "sbb l", "sbb m", "sbb a", "ana b", "ana c", "ana d",
+	"ana e", "ana h", "ana l", "ana m", "ana a", "xra b", "xra c", "xra d",
+	"xra e", "xra h", "xra l", "xra m", "xra a", "ora b", "ora c", "ora d",
+	"ora e", "ora h", "ora l", "ora m", "ora a", "cmp b", "cmp c", "cmp d",
+	"cmp e", "cmp h", "cmp l", "cmp m", "cmp a", "rnz", "pop b", "jnz $",
+	"jmp $", "cnz $", "push b", "adi #", "rst 0", "rz", "ret", "jz $",
+	"*nop", "cz $", "call $", "aci #", "rst 1", "rnc", "pop d", "jnc $",
+	"out p", "cnc $", "push d", "sui #", "rst 2", "rc", "*ret", "jc $",
+	"in p", "cc $", "*call", "sbi #", "rst 3", "rpo", "pop h", "jpo $",
+	"xthl", "cpo $", "push h", "ani #", "rst 4", "rpe", "pchl", "jpe $",
+	"xchg", "cpe $", "*call", "xri #", "rst 5", "rp", "pop psw", "jp $",
+	"di", "cp $", "push psw", "ori #", "rst 6", "rm", "sphl", "jm $", "ei",
+	"cm $", "*call $", "cpi #", "rst 7"
 };
+#endif // I8080_DEBUG_OUTPUT
 
 #define SET_ZSP(c, val) do { \
 	c->zf = (val) == 0; c->sf = (val) >> 7; c->pf = parity(val); \
@@ -1293,10 +1294,55 @@ void i8080_interrupt(struct i8080 *const c, uint8_t opcode)
 	c->interrupt_vector = opcode;
 }
 
+#ifdef I8080_DEBUG_OUTPUT
+
+// simple disassemble function
+static void disassemble_ins(struct i8080 *const c)
+{
+	static const char hex[16] = { '0', '1', '2', '3', '4', '5', '6', '7',
+				      '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+	char buf[16];
+	const char *p;
+	char *q;
+	int chr, data;
+
+	/*
+	 * Copy the string representation of the instruction, substituting '#'
+	 * for a single byte hex value from the next memory location and '$'
+	 * for a double byte hex value from the next two memory locations.
+	 */
+	p = DISASSEMBLE_TABLE[i8080_rb(c, c->pc)];
+	q = &buf[0];
+	while ((chr = *p++)) {
+		if (chr == '$')
+			data = i8080_rb(c, c->pc + 1) +
+			       (i8080_rb(c, c->pc + 2) << 8);
+		else if (chr == '#') {
+			data = i8080_rb(c, c->pc + 1);
+			goto print2;
+		}
+		else {
+			*q++ = chr;
+			continue;
+		}
+
+		*q++ = hex[data >> 12 & 0xf];
+		*q++ = hex[data >>  8 & 0xf];
+print2:
+		*q++ = hex[data >>  4 & 0xf];
+		*q++ = hex[data >>  0 & 0xf];
+		*q++ = 'h';
+	}
+
+	*q++ = 0;
+	printf("%s", buf);
+}
+
 /*
  * outputs a debug trace of the emulator state to the standard output,
  * including registers and flags
  */
+
 void i8080_debug_output(struct i8080 *const c)
 {
 	uint8_t f = 0;
@@ -1307,21 +1353,20 @@ void i8080_debug_output(struct i8080 *const c)
 	f |= 1 << 1;		// bit 1 is always 1
 	f |= c->cf << 0;
 
-	printf("PC: %04X, AF: %04X, BC: %04X, "
-	       "DE: %04X, HL: %04X, SP: %04X, CYC: %lu",
-	     c->pc, c->r.eg8[REG_A] << 8 | f, c->r.eg16[REG_BC],
-	     c->r.eg16[REG_DE], c->r.eg16[REG_HL], c->r.eg16[REG_SP], c->cyc);
-
-	printf("\t(%02X %02X %02X %02X)",
-	       i8080_rb(c, c->pc),
-	       i8080_rb(c, c->pc + 1),
-	       i8080_rb(c, c->pc + 2), i8080_rb(c, c->pc + 3));
-
-	if (PRINT_DISASSEMBLY_IN_DEBUG_OUTPUT)
-		printf(" - %s", DISASSEMBLE_TABLE[i8080_rb(c, c->pc)]);
-
+	printf("PC:%04X AF:%04X BC:%04X DE:%04X HL:%04X SP:%04X T:%6lu "
+	       "I:%c%c  ",
+	       c->pc,
+	       c->r.eg8[REG_A] << 8 | f,
+	       c->r.eg16[REG_BC],
+	       c->r.eg16[REG_DE],
+	       c->r.eg16[REG_HL],
+	       c->r.eg16[REG_SP],
+	       c->cyc % 1000000,
+	       c->iff ? 'E' : 'D',
+	       c->interrupt_pending ? 'P' : ' ');
+	disassemble_ins(c);
 	printf("\n");
 }
+#endif // I8080_DEBUG_OUTPUT
 
 #undef SET_ZSP
-#undef PRINT_DISASSEMBLY_IN_DEBUG_OUTPUT
