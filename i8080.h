@@ -53,6 +53,117 @@ enum {
 	REG_SP
 };
 
+/*
+ * Define a list of related opcodes which will be used with a lookup table
+ * to allow a consolidation of the code to process each set of instructions.
+ *
+ * e.g. MOV_R_R will be used for all register to register MOV instructions.
+ */
+enum {
+	/* Move register to register */
+	MOV_R_R,
+	/* Move immediate to register */
+	MVI_R_N,
+	/* Register arithmetic */
+	ADD_R,
+	ADC_R,
+	SUB_R,
+	SBB_R,
+	ANA_R,
+	XRA_R,
+	ORA_R,
+	CMP_R,
+	/* Increment/Decrement */
+	INR_R,
+	DCR_R,
+	/* Conditionals */
+	RCC,
+	JCC_NN,
+	CCC_NN,
+	/* RST */
+	RST_P,
+	/* Register pair */
+	LXI_RR_NN,
+	STAX_RR,
+	INX_RR,
+	DAD_RR,
+	LDAX_RR,
+	DCX_RR,
+	POP_RR,
+	PUSH_RR,
+	/* Immediate arithmetic */
+	ADI_N,
+	ACI_N,
+	SUI_N,
+	SBI_N,
+	ANI_N,
+	XRI_N,
+	ORI_N,
+	CPI_N,
+	/* Indrect HL arithmetic */
+	ADD_INDIRECT_HL,
+	ADC_INDIRECT_HL,
+	SUB_INDIRECT_HL,
+	SBB_INDIRECT_HL,
+	ANA_INDIRECT_HL,
+	XRA_INDIRECT_HL,
+	ORA_INDIRECT_HL,
+	CMP_INDIRECT_HL,
+	/* Indrect HL increment/decrement */
+	INR_INDIRECT_HL,
+	DCR_INDIRECT_HL,
+	/* Indirect HL moves */
+	MOV_INDIRECT_HL_R,
+	MOV_R_INDIRECT_HL,
+	MVI_INDIRECT_HL_N,
+	/* Other stuff */
+	CALL_NN_UNDOCUMENTED,
+	CALL_NN,
+	CMA,
+	CMC,
+	DAA,
+	DI,
+	EI,
+	HALT,
+	IN_N,
+	JMP_NN_UNDOCUMENTED,
+	JMP_NN,
+	JPCC_NN,
+	LDA_NN,
+	LHLD_NN,
+	NOP_UNDOCUMENTED,
+	NOP,
+	OUT_N,
+	PCHL,
+	RET,
+	RET_UNDOCUMENTED,
+	RLC,
+	RAL,
+	RRC,
+	RAR,
+	SHLD_NN,
+	SPHL,
+	STA_NN,
+	STC,
+	XCHG,
+	XTHL,
+	INSN_MAX	/* Can be used for array definitions */
+};
+
+/*
+ * Define the flag bits for the F register
+ */
+enum {
+	FLAG_CARRY,
+	FLAG_RESERVED_1,
+	FLAG_PARITY,
+	FLAG_RESERVED_2,
+	FLAG_AUX_CARRY,
+	FLAG_RESERVED_3,
+	FLAG_ZERO,
+	FLAG_SIGN
+};
+
 struct i8080 {
 	union {
 		uint8_t eg8[10];	// B, C, D, E, H, L, A, F, S, P
