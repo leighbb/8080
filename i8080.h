@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 #ifndef I8080_I8080_H_
 #define I8080_I8080_H_
 

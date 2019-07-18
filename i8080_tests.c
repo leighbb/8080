@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 // This file uses the 8080 emulator to run the test suite (roms in cpu_tests
 // directory). It uses a simple array as memory.
 

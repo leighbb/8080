@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 #include "i8080.h"
 
 // this array defines the number of cycles one opcode takes.
