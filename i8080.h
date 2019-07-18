@@ -42,6 +42,7 @@ enum {
 	REG_P,
 	REG_S
 };
+
 #endif /* __BYTE_ORDER */
 
 enum {
@@ -68,9 +69,9 @@ struct i8080 {
 
 	// memory + io interface
 	void *userdata;			// general purpose pointer for the user
-	 uint8_t(*read_byte) (void *, uint16_t);
+	uint8_t(*read_byte) (void *, uint16_t);
 	void (*write_byte)(void *, uint16_t, uint8_t);
-	 uint8_t(*port_in) (void *, uint8_t);
+	uint8_t(*port_in) (void *, uint8_t);
 	void (*port_out)(void *, uint8_t, uint8_t);
 };
 
