@@ -93,7 +93,7 @@ static inline void i8080_wb(struct i8080 *const c, const uint16_t addr,
 static inline uint16_t i8080_rw(struct i8080 *const c, const uint16_t addr)
 {
 	return c->read_byte(c->userdata, addr + 1) << 8 |
-	    c->read_byte(c->userdata, addr);
+	       c->read_byte(c->userdata, addr);
 }
 
 // writes a word to memory
