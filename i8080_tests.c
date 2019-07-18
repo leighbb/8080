@@ -28,7 +28,7 @@ static void wb(void *userdata, const uint16_t addr, const uint8_t val)
 
 static uint8_t port_in(void *userdata, uint8_t port)
 {
-	i8080 *const c = (i8080 *) userdata;
+	struct i8080 *const c = (struct i8080 *) userdata;
 
 	uint8_t operation = c->c;
 
@@ -84,7 +84,7 @@ static int load_file(const char *filename, uint16_t addr)
  * runs a program, handling CALL 5 call to output test results to standard
  * output
  */
-static void run_test(i8080 * const c, const char *filename,
+static void run_test(struct i8080 *const c, const char *filename,
 		     unsigned long cyc_expected)
 {
 	i8080_init(c);
@@ -137,7 +137,7 @@ int main(void)
 	if (memory == NULL)
 		return 1;
 
-	i8080 cpu;
+	struct i8080 cpu;
 	run_test(&cpu, "cpu_tests/TST8080.COM", 4924LU);
 	run_test(&cpu, "cpu_tests/CPUTEST.COM", 255653383LU);
 	run_test(&cpu, "cpu_tests/8080PRE.COM", 7817LU);
