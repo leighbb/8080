@@ -15,37 +15,42 @@
  */
 #if __BYTE_ORDER == __BIG_ENDIAN
 
-#define REG_B   0
-#define REG_C   1
-#define REG_D   2
-#define REG_E   3
-#define REG_H   4
-#define REG_L   5
-#define REG_A   6
-#define REG_F   7	// Not using this yet
-#define REG_S   8
-#define REG_P   9
+enum {
+	REG_B,
+	REG_C,
+	REG_D,
+	REG_E,
+	REG_H,
+	REG_L,
+	REG_A,
+	REG_F,		// Not using this yet
+	REG_S,
+	REG_P
+};
 
 #else /* __LITTLE_ENDIAN */
 
-#define REG_B   1
-#define REG_C   0
-#define REG_D   3
-#define REG_E   2
-#define REG_H   5
-#define REG_L   4
-#define REG_A   7
-#define REG_F   6	// Not using this yet
-#define REG_S   9
-#define REG_P   8
-
+enum {
+	REG_C,
+	REG_B,
+	REG_E,
+	REG_D,
+	REG_L,
+	REG_H,
+	REG_F,		// Not using this yet
+	REG_A,
+	REG_P,
+	REG_S
+};
 #endif /* __BYTE_ORDER */
 
-#define REG_BC  0
-#define REG_DE  1
-#define REG_HL  2
-#define REG_AF  3
-#define REG_SP  4
+enum {
+	REG_BC,
+	REG_DE,
+	REG_HL,
+	REG_AF,
+	REG_SP
+};
 
 struct i8080 {
 	union {
