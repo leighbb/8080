@@ -414,7 +414,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	uint8_t ins = INSTRUCTION_TABLE[opcode];
 
 	// XXX Restrict processing to a subset during the migration
-	if (ins > CMP_INDIRECT_HL)
+	if (ins > DCR_INDIRECT_HL)
 		goto do_opcode;
 	switch (ins) {
 	case MOV_R_R:
@@ -547,6 +547,14 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	case CMP_INDIRECT_HL:
 		i8080_cmp(c, i8080_rb(c, c->r.eg16[REG_HL]));
 		break;
+	case INR_INDIRECT_HL:
+		i8080_wb(c, c->r.eg16[REG_HL],
+			i8080_inr(c, i8080_rb(c, c->r.eg16[REG_HL])));
+		break;
+	case DCR_INDIRECT_HL:
+		i8080_wb(c, c->r.eg16[REG_HL],
+			i8080_dcr(c, i8080_rb(c, c->r.eg16[REG_HL])));
+		break;
 	default:
 		fprintf(stderr, "unhandled instruction %d (opcode %02x)\n",
 			ins, opcode);
@@ -651,18 +659,6 @@ do_opcode:
 	case 0x76:
 		c->halted = 1;
 		break;		// HLT
-
-		// increment byte instructions
-	case 0x34:
-		i8080_wb(c, c->r.eg16[REG_HL],
-			 i8080_inr(c, i8080_rb(c, c->r.eg16[REG_HL])));
-		break;		// INR M
-
-		// decrement byte instructions
-	case 0x35:
-		i8080_wb(c, c->r.eg16[REG_HL],
-			 i8080_dcr(c, i8080_rb(c, c->r.eg16[REG_HL])));
-		break;		// DCR M
 
 		// special accumulator and flag instructions
 	case 0x27:
