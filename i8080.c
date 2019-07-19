@@ -414,7 +414,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	uint8_t ins = INSTRUCTION_TABLE[opcode];
 
 	// XXX Restrict processing to a subset during the migration
-	if (ins > MVI_INDIRECT_HL_N)
+	if (ins > CALL_NN)
 		goto do_opcode;
 	switch (ins) {
 	case MOV_R_R:
@@ -564,6 +564,10 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	case MVI_INDIRECT_HL_N:
 		i8080_wb(c, c->r.eg16[REG_HL], i8080_next_byte(c));
 		break;
+	case CALL_NN_UNDOCUMENTED: /* drop through */
+	case CALL_NN:
+		i8080_call(c, i8080_next_word(c));
+		break;
 	default:
 		fprintf(stderr, "unhandled instruction %d (opcode %02x)\n",
 			ins, opcode);
@@ -651,10 +655,6 @@ do_opcode:
 	case 0xE9:
 		c->pc = c->r.eg16[REG_HL];
 		break;		// PCHL
-	case 0xCD:
-		i8080_call(c, i8080_next_word(c));
-		break;		// CALL
-
 	case 0xC9:
 		i8080_ret(c);
 		break;		// RET
@@ -680,13 +680,6 @@ do_opcode:
 		// undocumented RET
 	case 0xD9:
 		i8080_ret(c);
-		break;
-
-		// undocumented CALLs
-	case 0xDD:
-	case 0xED:
-	case 0xFD:
-		i8080_call(c, i8080_next_word(c));
 		break;
 
 		// undocumented JMP
