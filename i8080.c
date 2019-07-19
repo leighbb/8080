@@ -389,7 +389,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	uint8_t ins = INSTRUCTION_TABLE[opcode];
 
 	// XXX Restrict processing to a subset during the migration
-	if (ins > LXI_RR_NN)
+	if (ins > STAX_RR)
 		goto do_opcode;
 	switch (ins) {
 	case MOV_R_R:
@@ -448,6 +448,9 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		break;
 	case LXI_RR_NN:
 		*(c->reg16_sp[RP(opcode)]) = i8080_next_word(c);
+		break;
+	case STAX_RR: // Only BC & DE
+		i8080_wb(c, *(c->reg16_sp[RP(opcode)]), c->r.eg8[REG_A]);
 		break;
 	default:
 		fprintf(stderr, "unhandled instruction %d (opcode %02x)\n",
@@ -523,12 +526,6 @@ do_opcode:
 		i8080_wb(c, c->r.eg16[REG_HL], i8080_next_byte(c));
 		break;		// MVI M,byte
 
-	case 0x02:
-		i8080_wb(c, c->r.eg16[REG_BC], c->r.eg8[REG_A]);
-		break;		// STAX B
-	case 0x12:
-		i8080_wb(c, c->r.eg16[REG_DE], c->r.eg8[REG_A]);
-		break;		// STAX D
 	case 0x32:
 		i8080_wb(c, i8080_next_word(c), c->r.eg8[REG_A]);
 		break;		// STA word
