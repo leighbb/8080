@@ -365,7 +365,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	uint8_t ins = INSTRUCTION_TABLE[opcode];
 
 	// XXX Restrict processing to a subset during the migration
-	if (ins > ORA_R)
+	if (ins > CMP_R)
 		goto do_opcode;
 	switch (ins) {
 	case MOV_R_R:
@@ -398,6 +398,9 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		break;
 	case ORA_R:
 		i8080_ora(c, *(c->reg8_table[SSS(opcode)]));
+		break;
+	case CMP_R:
+		i8080_cmp(c, *(c->reg8_table[SSS(opcode)]));
 		break;
 	default:
 		fprintf(stderr, "unhandled instruction %d (opcode %02x)\n",
@@ -710,27 +713,6 @@ do_opcode:
 		i8080_ora(c, i8080_next_byte(c));
 		break;		// ORI byte
 
-	case 0xBF:
-		i8080_cmp(c, c->r.eg8[REG_A]);
-		break;		// CMP A
-	case 0xB8:
-		i8080_cmp(c, c->r.eg8[REG_B]);
-		break;		// CMP B
-	case 0xB9:
-		i8080_cmp(c, c->r.eg8[REG_C]);
-		break;		// CMP C
-	case 0xBA:
-		i8080_cmp(c, c->r.eg8[REG_D]);
-		break;		// CMP D
-	case 0xBB:
-		i8080_cmp(c, c->r.eg8[REG_E]);
-		break;		// CMP E
-	case 0xBC:
-		i8080_cmp(c, c->r.eg8[REG_H]);
-		break;		// CMP H
-	case 0xBD:
-		i8080_cmp(c, c->r.eg8[REG_L]);
-		break;		// CMP L
 	case 0xBE:
 		i8080_cmp(c, i8080_rb(c, c->r.eg16[REG_HL]));
 		break;		// CMP M
