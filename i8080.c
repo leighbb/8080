@@ -388,7 +388,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	uint8_t ins = INSTRUCTION_TABLE[opcode];
 
 	// XXX Restrict processing to a subset during the migration
-	if (ins > CCC_NN)
+	if (ins > RST_P)
 		goto do_opcode;
 	switch (ins) {
 	case MOV_R_R:
@@ -441,6 +441,9 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		break;
 	case CCC_NN:
 		i8080_cond_call(c, condition(c, opcode));
+		break;
+	case RST_P:
+		i8080_call(c, opcode & 0x38);
 		break;
 	default:
 		fprintf(stderr, "unhandled instruction %d (opcode %02x)\n",
@@ -733,31 +736,6 @@ do_opcode:
 	case 0xC9:
 		i8080_ret(c);
 		break;		// RET
-
-	case 0xC7:
-		i8080_call(c, 0x00);
-		break;		// RST 0
-	case 0xCF:
-		i8080_call(c, 0x08);
-		break;		// RST 1
-	case 0xD7:
-		i8080_call(c, 0x10);
-		break;		// RST 2
-	case 0xDF:
-		i8080_call(c, 0x18);
-		break;		// RST 3
-	case 0xE7:
-		i8080_call(c, 0x20);
-		break;		// RST 4
-	case 0xEF:
-		i8080_call(c, 0x28);
-		break;		// RST 5
-	case 0xF7:
-		i8080_call(c, 0x30);
-		break;		// RST 6
-	case 0xFF:
-		i8080_call(c, 0x38);
-		break;		// RST 7
 
 		// stack operation instructions
 	case 0xC5:
