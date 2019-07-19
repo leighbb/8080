@@ -365,7 +365,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	uint8_t ins = INSTRUCTION_TABLE[opcode];
 
 	// XXX Restrict processing to a subset during the migration
-	if (ins > SUB_R)
+	if (ins > SBB_R)
 		goto do_opcode;
 	switch (ins) {
 	case MOV_R_R:
@@ -385,6 +385,10 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	case SUB_R:
 		i8080_sub(c, &c->r.eg8[REG_A],
 			    *(c->reg8_table[SSS(opcode)]), 0);
+		break;
+	case SBB_R:
+		i8080_sub(c, &c->r.eg8[REG_A],
+			    *(c->reg8_table[SSS(opcode)]), c->cf);
 		break;
 	default:
 		fprintf(stderr, "unhandled instruction %d (opcode %02x)\n",
@@ -529,27 +533,6 @@ do_opcode:
 		break;		// SUI byte
 
 		// substract byte with borrow-in instructions
-	case 0x9F:
-		i8080_sub(c, &c->r.eg8[REG_A], c->r.eg8[REG_A], c->cf);
-		break;		// SBB A
-	case 0x98:
-		i8080_sub(c, &c->r.eg8[REG_A], c->r.eg8[REG_B], c->cf);
-		break;		// SBB B
-	case 0x99:
-		i8080_sub(c, &c->r.eg8[REG_A], c->r.eg8[REG_C], c->cf);
-		break;		// SBB C
-	case 0x9A:
-		i8080_sub(c, &c->r.eg8[REG_A], c->r.eg8[REG_D], c->cf);
-		break;		// SBB D
-	case 0x9B:
-		i8080_sub(c, &c->r.eg8[REG_A], c->r.eg8[REG_E], c->cf);
-		break;		// SBB E
-	case 0x9C:
-		i8080_sub(c, &c->r.eg8[REG_A], c->r.eg8[REG_H], c->cf);
-		break;		// SBB H
-	case 0x9D:
-		i8080_sub(c, &c->r.eg8[REG_A], c->r.eg8[REG_L], c->cf);
-		break;		// SBB L
 	case 0x9E:
 		i8080_sub(c, &c->r.eg8[REG_A],
 			  i8080_rb(c, c->r.eg16[REG_HL]), c->cf);
