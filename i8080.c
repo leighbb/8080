@@ -414,7 +414,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	uint8_t ins = INSTRUCTION_TABLE[opcode];
 
 	// XXX Restrict processing to a subset during the migration
-	if (ins > PUSH_RR)
+	if (ins > CPI_N)
 		goto do_opcode;
 	switch (ins) {
 	case MOV_R_R:
@@ -494,6 +494,30 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		break;
 	case PUSH_RR:
 		push_rr(c, opcode);
+		break;
+	case ADI_N:
+		i8080_add(c, &c->r.eg8[REG_A], i8080_next_byte(c), 0);
+		break;
+	case ACI_N:
+		i8080_add(c, &c->r.eg8[REG_A], i8080_next_byte(c), c->cf);
+		break;
+	case SUI_N:
+		i8080_sub(c, &c->r.eg8[REG_A], i8080_next_byte(c), 0);
+		break;
+	case SBI_N:
+		i8080_sub(c, &c->r.eg8[REG_A], i8080_next_byte(c), c->cf);
+		break;
+	case ANI_N:
+		i8080_ana(c, i8080_next_byte(c));
+		break;
+	case XRI_N:
+		i8080_xra(c, i8080_next_byte(c));
+		break;
+	case ORI_N:
+		i8080_ora(c, i8080_next_byte(c));
+		break;
+	case CPI_N:
+		i8080_cmp(c, i8080_next_byte(c));
 		break;
 	default:
 		fprintf(stderr, "unhandled instruction %d (opcode %02x)\n",
@@ -591,36 +615,24 @@ do_opcode:
 		i8080_add(c, &c->r.eg8[REG_A],
 			  i8080_rb(c, c->r.eg16[REG_HL]), 0);
 		break;		// ADD M
-	case 0xC6:
-		i8080_add(c, &c->r.eg8[REG_A], i8080_next_byte(c), 0);
-		break;		// ADI byte
 
 		// add byte with carry-in instructions
 	case 0x8E:
 		i8080_add(c, &c->r.eg8[REG_A],
 			  i8080_rb(c, c->r.eg16[REG_HL]), c->cf);
 		break;		// ADC M
-	case 0xCE:
-		i8080_add(c, &c->r.eg8[REG_A], i8080_next_byte(c), c->cf);
-		break;		// ACI byte
 
 		// substract byte instructions
 	case 0x96:
 		i8080_sub(c, &c->r.eg8[REG_A],
 			  i8080_rb(c, c->r.eg16[REG_HL]), 0);
 		break;		// SUB M
-	case 0xD6:
-		i8080_sub(c, &c->r.eg8[REG_A], i8080_next_byte(c), 0);
-		break;		// SUI byte
 
 		// substract byte with borrow-in instructions
 	case 0x9E:
 		i8080_sub(c, &c->r.eg8[REG_A],
 			  i8080_rb(c, c->r.eg16[REG_HL]), c->cf);
 		break;		// SBB M
-	case 0xDE:
-		i8080_sub(c, &c->r.eg8[REG_A], i8080_next_byte(c), c->cf);
-		break;		// SBI byte
 
 		// control instructions
 	case 0xF3:
@@ -680,30 +692,18 @@ do_opcode:
 	case 0xA6:
 		i8080_ana(c, i8080_rb(c, c->r.eg16[REG_HL]));
 		break;		// ANA M
-	case 0xE6:
-		i8080_ana(c, i8080_next_byte(c));
-		break;		// ANI byte
 
 	case 0xAE:
 		i8080_xra(c, i8080_rb(c, c->r.eg16[REG_HL]));
 		break;		// XRA M
-	case 0xEE:
-		i8080_xra(c, i8080_next_byte(c));
-		break;		// XRI byte
 
 	case 0xB6:
 		i8080_ora(c, i8080_rb(c, c->r.eg16[REG_HL]));
 		break;		// ORA M
-	case 0xF6:
-		i8080_ora(c, i8080_next_byte(c));
-		break;		// ORI byte
 
 	case 0xBE:
 		i8080_cmp(c, i8080_rb(c, c->r.eg16[REG_HL]));
 		break;		// CMP M
-	case 0xFE:
-		i8080_cmp(c, i8080_next_byte(c));
-		break;		// CPI byte
 
 		// branch control/program counter load instructions
 	case 0xC3:
