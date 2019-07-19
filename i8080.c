@@ -365,7 +365,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	uint8_t ins = INSTRUCTION_TABLE[opcode];
 
 	// XXX Restrict processing to a subset during the migration
-	if (ins > 1)
+	if (ins > 2)
 		goto do_opcode;
 	switch (ins) {
 	case MOV_R_R:
@@ -374,6 +374,11 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	case MVI_R_N:
 		*(c->reg8_table[DDD(opcode)]) = i8080_next_byte(c);
 		break;
+	case ADD_R:
+		i8080_add(c, &c->r.eg8[REG_A],
+			    *(c->reg8_table[SSS(opcode)]), 0);
+		break;
+
 	default:
 		fprintf(stderr, "unhandled instruction %d (opcode %02x)\n",
 			ins, opcode);
@@ -490,27 +495,6 @@ do_opcode:
 		break;		// XTHL
 
 		// add byte instructions
-	case 0x87:
-		i8080_add(c, &c->r.eg8[REG_A], c->r.eg8[REG_A], 0);
-		break;		// ADD A
-	case 0x80:
-		i8080_add(c, &c->r.eg8[REG_A], c->r.eg8[REG_B], 0);
-		break;		// ADD B
-	case 0x81:
-		i8080_add(c, &c->r.eg8[REG_A], c->r.eg8[REG_C], 0);
-		break;		// ADD C
-	case 0x82:
-		i8080_add(c, &c->r.eg8[REG_A], c->r.eg8[REG_D], 0);
-		break;		// ADD D
-	case 0x83:
-		i8080_add(c, &c->r.eg8[REG_A], c->r.eg8[REG_E], 0);
-		break;		// ADD E
-	case 0x84:
-		i8080_add(c, &c->r.eg8[REG_A], c->r.eg8[REG_H], 0);
-		break;		// ADD H
-	case 0x85:
-		i8080_add(c, &c->r.eg8[REG_A], c->r.eg8[REG_L], 0);
-		break;		// ADD L
 	case 0x86:
 		i8080_add(c, &c->r.eg8[REG_A],
 			  i8080_rb(c, c->r.eg16[REG_HL]), 0);
