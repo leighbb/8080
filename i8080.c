@@ -414,7 +414,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	uint8_t ins = INSTRUCTION_TABLE[opcode];
 
 	// XXX Restrict processing to a subset during the migration
-	if (ins > CPI_N)
+	if (ins > CMP_INDIRECT_HL)
 		goto do_opcode;
 	switch (ins) {
 	case MOV_R_R:
@@ -519,6 +519,34 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	case CPI_N:
 		i8080_cmp(c, i8080_next_byte(c));
 		break;
+	case ADD_INDIRECT_HL:
+		i8080_add(c, &c->r.eg8[REG_A],
+			  i8080_rb(c, c->r.eg16[REG_HL]), 0);
+		break;
+	case ADC_INDIRECT_HL:
+		i8080_add(c, &c->r.eg8[REG_A],
+			  i8080_rb(c, c->r.eg16[REG_HL]), c->cf);
+		break;
+	case SUB_INDIRECT_HL:
+		i8080_sub(c, &c->r.eg8[REG_A],
+			  i8080_rb(c, c->r.eg16[REG_HL]), 0);
+		break;
+	case SBB_INDIRECT_HL:
+		i8080_sub(c, &c->r.eg8[REG_A],
+			  i8080_rb(c, c->r.eg16[REG_HL]), c->cf);
+		break;
+	case ANA_INDIRECT_HL:
+		i8080_ana(c, i8080_rb(c, c->r.eg16[REG_HL]));
+		break;
+	case XRA_INDIRECT_HL:
+		i8080_xra(c, i8080_rb(c, c->r.eg16[REG_HL]));
+		break;
+	case ORA_INDIRECT_HL:
+		i8080_ora(c, i8080_rb(c, c->r.eg16[REG_HL]));
+		break;
+	case CMP_INDIRECT_HL:
+		i8080_cmp(c, i8080_rb(c, c->r.eg16[REG_HL]));
+		break;
 	default:
 		fprintf(stderr, "unhandled instruction %d (opcode %02x)\n",
 			ins, opcode);
@@ -610,30 +638,6 @@ do_opcode:
 		i8080_xthl(c);
 		break;		// XTHL
 
-		// add byte instructions
-	case 0x86:
-		i8080_add(c, &c->r.eg8[REG_A],
-			  i8080_rb(c, c->r.eg16[REG_HL]), 0);
-		break;		// ADD M
-
-		// add byte with carry-in instructions
-	case 0x8E:
-		i8080_add(c, &c->r.eg8[REG_A],
-			  i8080_rb(c, c->r.eg16[REG_HL]), c->cf);
-		break;		// ADC M
-
-		// substract byte instructions
-	case 0x96:
-		i8080_sub(c, &c->r.eg8[REG_A],
-			  i8080_rb(c, c->r.eg16[REG_HL]), 0);
-		break;		// SUB M
-
-		// substract byte with borrow-in instructions
-	case 0x9E:
-		i8080_sub(c, &c->r.eg8[REG_A],
-			  i8080_rb(c, c->r.eg16[REG_HL]), c->cf);
-		break;		// SBB M
-
 		// control instructions
 	case 0xF3:
 		c->iff = 0;
@@ -687,23 +691,6 @@ do_opcode:
 	case 0x1F:
 		i8080_rar(c);
 		break;		// RAR
-
-		// logical byte instructions
-	case 0xA6:
-		i8080_ana(c, i8080_rb(c, c->r.eg16[REG_HL]));
-		break;		// ANA M
-
-	case 0xAE:
-		i8080_xra(c, i8080_rb(c, c->r.eg16[REG_HL]));
-		break;		// XRA M
-
-	case 0xB6:
-		i8080_ora(c, i8080_rb(c, c->r.eg16[REG_HL]));
-		break;		// ORA M
-
-	case 0xBE:
-		i8080_cmp(c, i8080_rb(c, c->r.eg16[REG_HL]));
-		break;		// CMP M
 
 		// branch control/program counter load instructions
 	case 0xC3:
