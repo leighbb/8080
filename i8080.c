@@ -516,49 +516,49 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	case CPI_N:
 		i8080_cmp(c, i8080_next_byte(c));
 		break;
-	case ADD_INDIRECT_HL:
+	case ADD_M:
 		i8080_add(c, &c->r.eg8[REG_A],
 			  i8080_rb(c, c->r.eg16[REG_HL]), 0);
 		break;
-	case ADC_INDIRECT_HL:
+	case ADC_M:
 		i8080_add(c, &c->r.eg8[REG_A],
 			  i8080_rb(c, c->r.eg16[REG_HL]), c->cf);
 		break;
-	case SUB_INDIRECT_HL:
+	case SUB_M:
 		i8080_sub(c, &c->r.eg8[REG_A],
 			  i8080_rb(c, c->r.eg16[REG_HL]), 0);
 		break;
-	case SBB_INDIRECT_HL:
+	case SBB_M:
 		i8080_sub(c, &c->r.eg8[REG_A],
 			  i8080_rb(c, c->r.eg16[REG_HL]), c->cf);
 		break;
-	case ANA_INDIRECT_HL:
+	case ANA_M:
 		i8080_ana(c, i8080_rb(c, c->r.eg16[REG_HL]));
 		break;
-	case XRA_INDIRECT_HL:
+	case XRA_M:
 		i8080_xra(c, i8080_rb(c, c->r.eg16[REG_HL]));
 		break;
-	case ORA_INDIRECT_HL:
+	case ORA_M:
 		i8080_ora(c, i8080_rb(c, c->r.eg16[REG_HL]));
 		break;
-	case CMP_INDIRECT_HL:
+	case CMP_M:
 		i8080_cmp(c, i8080_rb(c, c->r.eg16[REG_HL]));
 		break;
-	case INR_INDIRECT_HL:
+	case INR_M:
 		i8080_wb(c, c->r.eg16[REG_HL],
 			i8080_inr(c, i8080_rb(c, c->r.eg16[REG_HL])));
 		break;
-	case DCR_INDIRECT_HL:
+	case DCR_M:
 		i8080_wb(c, c->r.eg16[REG_HL],
 			i8080_dcr(c, i8080_rb(c, c->r.eg16[REG_HL])));
 		break;
-	case MOV_INDIRECT_HL_R:
+	case MOV_M_R:
 		i8080_wb(c, c->r.eg16[REG_HL], *(c->reg8_table[SSS(opcode)]));
 		break;
-	case MOV_R_INDIRECT_HL:
+	case MOV_R_M:
 		*(c->reg8_table[DDD(opcode)]) = i8080_rb(c, c->r.eg16[REG_HL]);
 		break;
-	case MVI_INDIRECT_HL_N:
+	case MVI_M_N:
 		i8080_wb(c, c->r.eg16[REG_HL], i8080_next_byte(c));
 		break;
 	case CALL_NN_UNDOCUMENTED: /* drop through */

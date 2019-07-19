@@ -95,9 +95,9 @@ static const uint8_t INSTRUCTION_TABLE[256] = {
 	LXI_RR_NN,
 	STA_NN,
 	INX_RR,
-	INR_INDIRECT_HL,
-	DCR_INDIRECT_HL,
-	MVI_INDIRECT_HL_N,
+	INR_M,
+	DCR_M,
+	MVI_M_N,
 	STC,
 
 	NOP_UNDOCUMENTED,
@@ -116,7 +116,7 @@ static const uint8_t INSTRUCTION_TABLE[256] = {
 	MOV_R_R,
 	MOV_R_R,
 	MOV_R_R,
-	MOV_R_INDIRECT_HL,
+	MOV_R_M,
 	MOV_R_R,
 
 	MOV_R_R,
@@ -125,7 +125,7 @@ static const uint8_t INSTRUCTION_TABLE[256] = {
 	MOV_R_R,
 	MOV_R_R,
 	MOV_R_R,
-	MOV_R_INDIRECT_HL,
+	MOV_R_M,
 	MOV_R_R,
 
 	/* 0x50 - 0x5F */
@@ -135,7 +135,7 @@ static const uint8_t INSTRUCTION_TABLE[256] = {
 	MOV_R_R,
 	MOV_R_R,
 	MOV_R_R,
-	MOV_R_INDIRECT_HL,
+	MOV_R_M,
 	MOV_R_R,
 
 	MOV_R_R,
@@ -144,7 +144,7 @@ static const uint8_t INSTRUCTION_TABLE[256] = {
 	MOV_R_R,
 	MOV_R_R,
 	MOV_R_R,
-	MOV_R_INDIRECT_HL,
+	MOV_R_M,
 	MOV_R_R,
 
 	/* 0x60 - 0x6F */
@@ -154,7 +154,7 @@ static const uint8_t INSTRUCTION_TABLE[256] = {
 	MOV_R_R,
 	MOV_R_R,
 	MOV_R_R,
-	MOV_R_INDIRECT_HL,
+	MOV_R_M,
 	MOV_R_R,
 
 	MOV_R_R,
@@ -163,18 +163,18 @@ static const uint8_t INSTRUCTION_TABLE[256] = {
 	MOV_R_R,
 	MOV_R_R,
 	MOV_R_R,
-	MOV_R_INDIRECT_HL,
+	MOV_R_M,
 	MOV_R_R,
 
 	/* 0x70 - 0x7F */
-	MOV_INDIRECT_HL_R,
-	MOV_INDIRECT_HL_R,
-	MOV_INDIRECT_HL_R,
-	MOV_INDIRECT_HL_R,
-	MOV_INDIRECT_HL_R,
-	MOV_INDIRECT_HL_R,
+	MOV_M_R,
+	MOV_M_R,
+	MOV_M_R,
+	MOV_M_R,
+	MOV_M_R,
+	MOV_M_R,
 	HALT,
-	MOV_INDIRECT_HL_R,
+	MOV_M_R,
 
 	MOV_R_R,
 	MOV_R_R,
@@ -182,7 +182,7 @@ static const uint8_t INSTRUCTION_TABLE[256] = {
 	MOV_R_R,
 	MOV_R_R,
 	MOV_R_R,
-	MOV_R_INDIRECT_HL,
+	MOV_R_M,
 	MOV_R_R,
 
 	/* 0x80 - 0x8F */
@@ -192,7 +192,7 @@ static const uint8_t INSTRUCTION_TABLE[256] = {
 	ADD_R,
 	ADD_R,
 	ADD_R,
-	ADD_INDIRECT_HL,
+	ADD_M,
 	ADD_R,
 
 	ADC_R,
@@ -201,7 +201,7 @@ static const uint8_t INSTRUCTION_TABLE[256] = {
 	ADC_R,
 	ADC_R,
 	ADC_R,
-	ADC_INDIRECT_HL,
+	ADC_M,
 	ADC_R,
 
 	/* 0x90 - 0x9F */
@@ -211,7 +211,7 @@ static const uint8_t INSTRUCTION_TABLE[256] = {
 	SUB_R,
 	SUB_R,
 	SUB_R,
-	SUB_INDIRECT_HL,
+	SUB_M,
 	SUB_R,
 
 	SBB_R,
@@ -220,7 +220,7 @@ static const uint8_t INSTRUCTION_TABLE[256] = {
 	SBB_R,
 	SBB_R,
 	SBB_R,
-	SBB_INDIRECT_HL,
+	SBB_M,
 	SBB_R,
 
 	/* 0xA0 - 0xAF */
@@ -230,7 +230,7 @@ static const uint8_t INSTRUCTION_TABLE[256] = {
 	ANA_R,
 	ANA_R,
 	ANA_R,
-	ANA_INDIRECT_HL,
+	ANA_M,
 	ANA_R,
 
 	XRA_R,
@@ -239,7 +239,7 @@ static const uint8_t INSTRUCTION_TABLE[256] = {
 	XRA_R,
 	XRA_R,
 	XRA_R,
-	XRA_INDIRECT_HL,
+	XRA_M,
 	XRA_R,
 
 	/* 0xB0 - 0xBF */
@@ -249,7 +249,7 @@ static const uint8_t INSTRUCTION_TABLE[256] = {
 	ORA_R,
 	ORA_R,
 	ORA_R,
-	ORA_INDIRECT_HL,
+	ORA_M,
 	ORA_R,
 
 	CMP_R,
@@ -258,7 +258,7 @@ static const uint8_t INSTRUCTION_TABLE[256] = {
 	CMP_R,
 	CMP_R,
 	CMP_R,
-	CMP_INDIRECT_HL,
+	CMP_M,
 	CMP_R,
 
 	/* 0xC0 - 0xCF */
