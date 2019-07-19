@@ -389,7 +389,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	uint8_t ins = INSTRUCTION_TABLE[opcode];
 
 	// XXX Restrict processing to a subset during the migration
-	if (ins > LDAX_RR)
+	if (ins > DCX_RR)
 		goto do_opcode;
 	switch (ins) {
 	case MOV_R_R:
@@ -460,6 +460,9 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		break;
 	case LDAX_RR: // Only BC & DE
 		c->r.eg8[REG_A] = i8080_rb(c, *(c->reg16_sp[RP(opcode)]));
+		break;
+	case DCX_RR:
+		*(c->reg16_sp[RP(opcode)]) -= 1;
 		break;
 	default:
 		fprintf(stderr, "unhandled instruction %d (opcode %02x)\n",
@@ -613,20 +616,6 @@ do_opcode:
 		i8080_wb(c, c->r.eg16[REG_HL],
 			 i8080_dcr(c, i8080_rb(c, c->r.eg16[REG_HL])));
 		break;		// DCR M
-
-		// decrement register pair instructions
-	case 0x0B:
-		c->r.eg16[REG_BC] -= 1;
-		break;		// DCX B
-	case 0x1B:
-		c->r.eg16[REG_DE] -= 1;
-		break;		// DCX D
-	case 0x2B:
-		c->r.eg16[REG_HL] -= 1;
-		break;		// DCX H
-	case 0x3B:
-		c->r.eg16[REG_SP] -= 1;
-		break;		// DCX SP
 
 		// special accumulator and flag instructions
 	case 0x27:
