@@ -365,7 +365,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	uint8_t ins = INSTRUCTION_TABLE[opcode];
 
 	// XXX Restrict processing to a subset during the migration
-	if (ins > XRA_R)
+	if (ins > ORA_R)
 		goto do_opcode;
 	switch (ins) {
 	case MOV_R_R:
@@ -395,6 +395,9 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		break;
 	case XRA_R:
 		i8080_xra(c, *(c->reg8_table[SSS(opcode)]));
+		break;
+	case ORA_R:
+		i8080_ora(c, *(c->reg8_table[SSS(opcode)]));
 		break;
 	default:
 		fprintf(stderr, "unhandled instruction %d (opcode %02x)\n",
@@ -700,27 +703,6 @@ do_opcode:
 		i8080_xra(c, i8080_next_byte(c));
 		break;		// XRI byte
 
-	case 0xB7:
-		i8080_ora(c, c->r.eg8[REG_A]);
-		break;		// ORA A
-	case 0xB0:
-		i8080_ora(c, c->r.eg8[REG_B]);
-		break;		// ORA B
-	case 0xB1:
-		i8080_ora(c, c->r.eg8[REG_C]);
-		break;		// ORA C
-	case 0xB2:
-		i8080_ora(c, c->r.eg8[REG_D]);
-		break;		// ORA D
-	case 0xB3:
-		i8080_ora(c, c->r.eg8[REG_E]);
-		break;		// ORA E
-	case 0xB4:
-		i8080_ora(c, c->r.eg8[REG_H]);
-		break;		// ORA H
-	case 0xB5:
-		i8080_ora(c, c->r.eg8[REG_L]);
-		break;		// ORA L
 	case 0xB6:
 		i8080_ora(c, i8080_rb(c, c->r.eg16[REG_HL]));
 		break;		// ORA M
