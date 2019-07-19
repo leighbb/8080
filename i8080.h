@@ -178,6 +178,7 @@ struct i8080 {
 	uint8_t interrupt_vector;
 	uint8_t interrupt_delay;
 	uint8_t *reg8_table[8];
+	uint16_t *reg16_sp[4];
 
 	// memory + io interface
 	void *userdata;			// general purpose pointer for the user

@@ -15,6 +15,7 @@
 
 static inline uint8_t SSS(uint8_t opcode) { return (opcode >> 0) & 7; }
 static inline uint8_t DDD(uint8_t opcode) { return (opcode >> 3) & 7; }
+static inline uint8_t  RP(uint8_t opcode) { return (opcode >> 4) & 3; }
 
 /*
  * memory helpers (the only four to use `read_byte` and `write_byte` function
@@ -388,7 +389,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	uint8_t ins = INSTRUCTION_TABLE[opcode];
 
 	// XXX Restrict processing to a subset during the migration
-	if (ins > RST_P)
+	if (ins > LXI_RR_NN)
 		goto do_opcode;
 	switch (ins) {
 	case MOV_R_R:
@@ -444,6 +445,9 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		break;
 	case RST_P:
 		i8080_call(c, opcode & 0x38);
+		break;
+	case LXI_RR_NN:
+		*(c->reg16_sp[RP(opcode)]) = i8080_next_word(c);
 		break;
 	default:
 		fprintf(stderr, "unhandled instruction %d (opcode %02x)\n",
@@ -530,18 +534,6 @@ do_opcode:
 		break;		// STA word
 
 		// 16 bit transfer instructions
-	case 0x01:
-		c->r.eg16[REG_BC] = i8080_next_word(c);
-		break;		// LXI B,word
-	case 0x11:
-		c->r.eg16[REG_DE] = i8080_next_word(c);
-		break;		// LXI D,word
-	case 0x21:
-		c->r.eg16[REG_HL] = i8080_next_word(c);
-		break;		// LXI H,word
-	case 0x31:
-		c->r.eg16[REG_SP] = i8080_next_word(c);
-		break;		// LXI SP,word
 	case 0x2A:
 		c->r.eg16[REG_HL] = i8080_rw(c, i8080_next_word(c));
 		break;		// LHLD
@@ -844,6 +836,11 @@ void i8080_init(struct i8080 *const c)
 	c->reg8_table[5] = &c->r.eg8[REG_L];
 	c->reg8_table[6] = NULL;
 	c->reg8_table[7] = &c->r.eg8[REG_A];
+
+	c->reg16_sp[0] = &c->r.eg16[REG_BC];
+	c->reg16_sp[1] = &c->r.eg16[REG_DE];
+	c->reg16_sp[2] = &c->r.eg16[REG_HL];
+	c->reg16_sp[3] = &c->r.eg16[REG_SP];
 }
 
 // executes one instruction
