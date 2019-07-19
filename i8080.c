@@ -365,11 +365,14 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	uint8_t ins = INSTRUCTION_TABLE[opcode];
 
 	// XXX Restrict processing to a subset during the migration
-	if (ins > 0)
+	if (ins > 1)
 		goto do_opcode;
 	switch (ins) {
 	case MOV_R_R:
 		*(c->reg8_table[DDD(opcode)]) = *(c->reg8_table[SSS(opcode)]);
+		break;
+	case MVI_R_N:
+		*(c->reg8_table[DDD(opcode)]) = i8080_next_byte(c);
 		break;
 	default:
 		fprintf(stderr, "unhandled instruction %d (opcode %02x)\n",
@@ -441,27 +444,6 @@ do_opcode:
 		i8080_wb(c, c->r.eg16[REG_HL], c->r.eg8[REG_L]);
 		break;		// MOV M,L
 
-	case 0x3E:
-		c->r.eg8[REG_A] = i8080_next_byte(c);
-		break;		// MVI A,byte
-	case 0x06:
-		c->r.eg8[REG_B] = i8080_next_byte(c);
-		break;		// MVI B,byte
-	case 0x0E:
-		c->r.eg8[REG_C] = i8080_next_byte(c);
-		break;		// MVI C,byte
-	case 0x16:
-		c->r.eg8[REG_D] = i8080_next_byte(c);
-		break;		// MVI D,byte
-	case 0x1E:
-		c->r.eg8[REG_E] = i8080_next_byte(c);
-		break;		// MVI E,byte
-	case 0x26:
-		c->r.eg8[REG_H] = i8080_next_byte(c);
-		break;		// MVI H,byte
-	case 0x2E:
-		c->r.eg8[REG_L] = i8080_next_byte(c);
-		break;		// MVI L,byte
 	case 0x36:
 		i8080_wb(c, c->r.eg16[REG_HL], i8080_next_byte(c));
 		break;		// MVI M,byte
