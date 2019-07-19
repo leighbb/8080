@@ -413,9 +413,6 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	 */
 	uint8_t ins = INSTRUCTION_TABLE[opcode];
 
-	// XXX Restrict processing to a subset during the migration
-	if (ins > CALL_NN)
-		goto do_opcode;
 	switch (ins) {
 	case MOV_R_R:
 		*(c->reg8_table[DDD(opcode)]) = *(c->reg8_table[SSS(opcode)]);
@@ -568,126 +565,84 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	case CALL_NN:
 		i8080_call(c, i8080_next_word(c));
 		break;
+	case CMA:
+		c->r.eg8[REG_A] = ~c->r.eg8[REG_A];
+		break;
+	case CMC:
+		c->cf = !c->cf;
+		break;
+	case DAA:
+		i8080_daa(c);
+		break;
+	case DI:
+		c->iff = 0;
+		break;
+	case EI:
+		c->iff = 1;
+		c->interrupt_delay = 1;
+		break;
+	case HALT:
+		c->halted = 1;
+		break;
+	case IN_N:
+		c->r.eg8[REG_A] = c->port_in(c->userdata, i8080_next_byte(c));
+		break;
+	case JMP_NN_UNDOCUMENTED: /* drop through */
+	case JMP_NN:
+		i8080_jmp(c, i8080_next_word(c));
+		break;
+	case LDA_NN:
+		c->r.eg8[REG_A] = i8080_rb(c, i8080_next_word(c));
+		break;
+	case LHLD_NN:
+		c->r.eg16[REG_HL] = i8080_rw(c, i8080_next_word(c));
+		break;
+	case NOP_UNDOCUMENTED: /* drop through */
+	case NOP:
+		break;
+	case OUT_N:
+		c->port_out(c->userdata, i8080_next_byte(c), c->r.eg8[REG_A]);
+		break;
+	case PCHL:
+		c->pc = c->r.eg16[REG_HL];
+		break;
+	case RET_UNDOCUMENTED:
+	case RET:
+		i8080_ret(c);
+		break;
+	case RLC:
+		i8080_rlc(c);
+		break;
+	case RAL:
+		i8080_ral(c);
+		break;
+	case RRC:
+		i8080_rrc(c);
+		break;
+	case RAR:
+		i8080_rar(c);
+		break;
+	case SHLD_NN:
+		i8080_ww(c, i8080_next_word(c), c->r.eg16[REG_HL]);
+		break;
+	case SPHL:
+		c->r.eg16[REG_SP] = c->r.eg16[REG_HL];
+		break;
+	case STA_NN:
+		i8080_wb(c, i8080_next_word(c), c->r.eg8[REG_A]);
+		break;
+	case STC:
+		c->cf = 1;
+		break;
+	case XCHG:
+		i8080_xchg(c);
+		break;
+	case XTHL:
+		i8080_xthl(c);
+		break;
 	default:
 		fprintf(stderr, "unhandled instruction %d (opcode %02x)\n",
 			ins, opcode);
-		exit(1);
-	}
-	return;
-
-do_opcode:
-	switch (opcode) {
-		// 8 bit transfer instructions
-	case 0x3A:
-		c->r.eg8[REG_A] = i8080_rb(c, i8080_next_word(c));
-		break;		// LDA word
-
-	case 0x32:
-		i8080_wb(c, i8080_next_word(c), c->r.eg8[REG_A]);
-		break;		// STA word
-
-		// 16 bit transfer instructions
-	case 0x2A:
-		c->r.eg16[REG_HL] = i8080_rw(c, i8080_next_word(c));
-		break;		// LHLD
-	case 0x22:
-		i8080_ww(c, i8080_next_word(c), c->r.eg16[REG_HL]);
-		break;		// SHLD
-	case 0xF9:
-		c->r.eg16[REG_SP] = c->r.eg16[REG_HL];
-		break;		// SPHL
-
-		// register exchange instructions
-	case 0xEB:
-		i8080_xchg(c);
-		break;		// XCHG
-	case 0xE3:
-		i8080_xthl(c);
-		break;		// XTHL
-
-		// control instructions
-	case 0xF3:
-		c->iff = 0;
-		break;		// DI
-	case 0xFB:
-		c->iff = 1;
-		c->interrupt_delay = 1;
-		break;		// EI
-	case 0x00:
-		break;		// NOP
-	case 0x76:
-		c->halted = 1;
-		break;		// HLT
-
-		// special accumulator and flag instructions
-	case 0x27:
-		i8080_daa(c);
-		break;		// DAA
-	case 0x2F:
-		c->r.eg8[REG_A] = ~c->r.eg8[REG_A];
-		break;		// CMA
-	case 0x37:
-		c->cf = 1;
-		break;		// STC
-	case 0x3F:
-		c->cf = !c->cf;
-		break;		// CMC
-
-		// rotate instructions
-	case 0x07:
-		i8080_rlc(c);
-		break;		// RLC (rotate left)
-	case 0x0F:
-		i8080_rrc(c);
-		break;		// RRC (rotate right)
-	case 0x17:
-		i8080_ral(c);
-		break;		// RAL
-	case 0x1F:
-		i8080_rar(c);
-		break;		// RAR
-
-		// branch control/program counter load instructions
-	case 0xC3:
-		i8080_jmp(c, i8080_next_word(c));
-		break;		// JMP
-
-	case 0xE9:
-		c->pc = c->r.eg16[REG_HL];
-		break;		// PCHL
-	case 0xC9:
-		i8080_ret(c);
-		break;		// RET
-
-		// input/output instructions
-	case 0xDB:		// IN
-		c->r.eg8[REG_A] = c->port_in(c->userdata, i8080_next_byte(c));
-		break;
-	case 0xD3:		// OUT
-		c->port_out(c->userdata, i8080_next_byte(c), c->r.eg8[REG_A]);
-		break;
-
-		// undocumented NOPs
-	case 0x08:
-	case 0x10:
-	case 0x18:
-	case 0x20:
-	case 0x28:
-	case 0x30:
-	case 0x38:
-		break;
-
-		// undocumented RET
-	case 0xD9:
-		i8080_ret(c);
-		break;
-
-		// undocumented JMP
-	case 0xCB:
-		i8080_jmp(c, i8080_next_word(c));
-		break;
-	default:
-		fprintf(stderr, "unhandled opcode %02x\n", opcode);
 		exit(1);
 	}
 }
