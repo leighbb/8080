@@ -205,6 +205,29 @@ static inline void i8080_jmp(struct i8080 *const c, uint16_t addr)
 	c->pc = addr;
 }
 
+// Determine condition based on the bitfield in the opcode
+static inline bool condition(struct i8080 *const c, const uint8_t opcode)
+{
+	switch (opcode >> 3 & 7) {
+	case 0:
+		return c->zf == 0;
+	case 1:
+		return c->zf == 1;
+	case 2:
+		return c->cf == 0;
+	case 3:
+		return c->cf == 1;
+	case 4:
+		return c->pf == 0;
+	case 5:
+		return c->pf == 1;
+	case 6:
+		return c->sf == 0;
+	default:
+		return c->sf == 1;
+	}
+}
+
 /*
  * jumps to next address pointed by the next word in memory if a condition
  * is met
@@ -365,7 +388,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	uint8_t ins = INSTRUCTION_TABLE[opcode];
 
 	// XXX Restrict processing to a subset during the migration
-	if (ins > DCR_R)
+	if (ins > RCC)
 		goto do_opcode;
 	switch (ins) {
 	case MOV_R_R:
@@ -409,6 +432,9 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	case DCR_R:
 		*(c->reg8_table[DDD(opcode)]) =
 			i8080_dcr(c, *(c->reg8_table[DDD(opcode)]));
+		break;
+	case RCC:
+		i8080_cond_ret(c, condition(c, opcode));
 		break;
 	default:
 		fprintf(stderr, "unhandled instruction %d (opcode %02x)\n",
@@ -750,30 +776,6 @@ do_opcode:
 	case 0xC9:
 		i8080_ret(c);
 		break;		// RET
-	case 0xC0:
-		i8080_cond_ret(c, c->zf == 0);
-		break;		// RNZ
-	case 0xC8:
-		i8080_cond_ret(c, c->zf == 1);
-		break;		// RZ
-	case 0xD0:
-		i8080_cond_ret(c, c->cf == 0);
-		break;		// RNC
-	case 0xD8:
-		i8080_cond_ret(c, c->cf == 1);
-		break;		// RC
-	case 0xE0:
-		i8080_cond_ret(c, c->pf == 0);
-		break;		// RPO
-	case 0xE8:
-		i8080_cond_ret(c, c->pf == 1);
-		break;		// RPE
-	case 0xF0:
-		i8080_cond_ret(c, c->sf == 0);
-		break;		// RP
-	case 0xF8:
-		i8080_cond_ret(c, c->sf == 1);
-		break;		// RM
 
 	case 0xC7:
 		i8080_call(c, 0x00);
