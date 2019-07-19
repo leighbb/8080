@@ -365,7 +365,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	uint8_t ins = INSTRUCTION_TABLE[opcode];
 
 	// XXX Restrict processing to a subset during the migration
-	if (ins > 2)
+	if (ins > 3)
 		goto do_opcode;
 	switch (ins) {
 	case MOV_R_R:
@@ -378,7 +378,10 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		i8080_add(c, &c->r.eg8[REG_A],
 			    *(c->reg8_table[SSS(opcode)]), 0);
 		break;
-
+	case ADC_R:
+		i8080_add(c, &c->r.eg8[REG_A],
+			    *(c->reg8_table[SSS(opcode)]), c->cf);
+		break;
 	default:
 		fprintf(stderr, "unhandled instruction %d (opcode %02x)\n",
 			ins, opcode);
@@ -504,27 +507,6 @@ do_opcode:
 		break;		// ADI byte
 
 		// add byte with carry-in instructions
-	case 0x8F:
-		i8080_add(c, &c->r.eg8[REG_A], c->r.eg8[REG_A], c->cf);
-		break;		// ADC A
-	case 0x88:
-		i8080_add(c, &c->r.eg8[REG_A], c->r.eg8[REG_B], c->cf);
-		break;		// ADC B
-	case 0x89:
-		i8080_add(c, &c->r.eg8[REG_A], c->r.eg8[REG_C], c->cf);
-		break;		// ADC C
-	case 0x8A:
-		i8080_add(c, &c->r.eg8[REG_A], c->r.eg8[REG_D], c->cf);
-		break;		// ADC D
-	case 0x8B:
-		i8080_add(c, &c->r.eg8[REG_A], c->r.eg8[REG_E], c->cf);
-		break;		// ADC E
-	case 0x8C:
-		i8080_add(c, &c->r.eg8[REG_A], c->r.eg8[REG_H], c->cf);
-		break;		// ADC H
-	case 0x8D:
-		i8080_add(c, &c->r.eg8[REG_A], c->r.eg8[REG_L], c->cf);
-		break;		// ADC L
 	case 0x8E:
 		i8080_add(c, &c->r.eg8[REG_A],
 			  i8080_rb(c, c->r.eg16[REG_HL]), c->cf);
