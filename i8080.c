@@ -388,7 +388,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	uint8_t ins = INSTRUCTION_TABLE[opcode];
 
 	// XXX Restrict processing to a subset during the migration
-	if (ins > JCC_NN)
+	if (ins > CCC_NN)
 		goto do_opcode;
 	switch (ins) {
 	case MOV_R_R:
@@ -438,6 +438,9 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		break;
 	case JCC_NN:
 		i8080_cond_jmp(c, condition(c, opcode));
+		break;
+	case CCC_NN:
+		i8080_cond_call(c, condition(c, opcode));
 		break;
 	default:
 		fprintf(stderr, "unhandled instruction %d (opcode %02x)\n",
@@ -726,31 +729,6 @@ do_opcode:
 	case 0xCD:
 		i8080_call(c, i8080_next_word(c));
 		break;		// CALL
-
-	case 0xC4:
-		i8080_cond_call(c, c->zf == 0);
-		break;		// CNZ
-	case 0xCC:
-		i8080_cond_call(c, c->zf == 1);
-		break;		// CZ
-	case 0xD4:
-		i8080_cond_call(c, c->cf == 0);
-		break;		// CNC
-	case 0xDC:
-		i8080_cond_call(c, c->cf == 1);
-		break;		// CC
-	case 0xE4:
-		i8080_cond_call(c, c->pf == 0);
-		break;		// CPO
-	case 0xEC:
-		i8080_cond_call(c, c->pf == 1);
-		break;		// CPE
-	case 0xF4:
-		i8080_cond_call(c, c->sf == 0);
-		break;		// CP
-	case 0xFC:
-		i8080_cond_call(c, c->sf == 1);
-		break;		// CM
 
 	case 0xC9:
 		i8080_ret(c);
