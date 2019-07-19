@@ -365,7 +365,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	uint8_t ins = INSTRUCTION_TABLE[opcode];
 
 	// XXX Restrict processing to a subset during the migration
-	if (ins > CMP_R)
+	if (ins > INR_R)
 		goto do_opcode;
 	switch (ins) {
 	case MOV_R_R:
@@ -401,6 +401,10 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		break;
 	case CMP_R:
 		i8080_cmp(c, *(c->reg8_table[SSS(opcode)]));
+		break;
+	case INR_R:
+		*(c->reg8_table[DDD(opcode)]) =
+			i8080_inr(c, *(c->reg8_table[DDD(opcode)]));
 		break;
 	default:
 		fprintf(stderr, "unhandled instruction %d (opcode %02x)\n",
@@ -582,27 +586,6 @@ do_opcode:
 		break;		// HLT
 
 		// increment byte instructions
-	case 0x3C:
-		c->r.eg8[REG_A] = i8080_inr(c, c->r.eg8[REG_A]);
-		break;		// INR A
-	case 0x04:
-		c->r.eg8[REG_B] = i8080_inr(c, c->r.eg8[REG_B]);
-		break;		// INR B
-	case 0x0C:
-		c->r.eg8[REG_C] = i8080_inr(c, c->r.eg8[REG_C]);
-		break;		// INR C
-	case 0x14:
-		c->r.eg8[REG_D] = i8080_inr(c, c->r.eg8[REG_D]);
-		break;		// INR D
-	case 0x1C:
-		c->r.eg8[REG_E] = i8080_inr(c, c->r.eg8[REG_E]);
-		break;		// INR E
-	case 0x24:
-		c->r.eg8[REG_H] = i8080_inr(c, c->r.eg8[REG_H]);
-		break;		// INR H
-	case 0x2C:
-		c->r.eg8[REG_L] = i8080_inr(c, c->r.eg8[REG_L]);
-		break;		// INR L
 	case 0x34:
 		i8080_wb(c, c->r.eg16[REG_HL],
 			 i8080_inr(c, i8080_rb(c, c->r.eg16[REG_HL])));
