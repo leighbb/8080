@@ -272,27 +272,26 @@ static inline void i8080_cond_ret(struct i8080 *const c, bool condition)
 	}
 }
 
-// pushes register A and the flags into the stack
-static inline void i8080_push_psw(struct i8080 *const c)
+// construct PSW from the A register and flag variables
+static inline uint16_t i8080_get_psw(struct i8080 *const c)
 {
 	// note: bit 3 and 5 are always 0
-	uint8_t psw = 0;
+	uint16_t psw = 0;
 	psw |= c->sf << 7;
 	psw |= c->zf << 6;
 	psw |= c->hf << 4;
 	psw |= c->pf << 2;
 	psw |= 1 << 1;		// bit 1 is always 1
 	psw |= c->cf << 0;
-	i8080_push_stack(c, c->r.eg8[REG_A] << 8 | psw);
+	psw |= c->r.eg8[REG_A] << 8;
+
+	return psw;
 }
 
-// pops register A and the flags from the stack
-static inline void i8080_pop_psw(struct i8080 *const c)
+// set the A register and flag variables from the given PSW word
+static inline void i8080_set_psw(struct i8080 *const c, uint16_t psw)
 {
-	const uint16_t af = i8080_pop_stack(c);
-	c->r.eg8[REG_A] = af >> 8;
-	const uint8_t psw = af & 0xFF;
-
+	c->r.eg8[REG_A] = psw >> 8;
 	c->sf = (psw >> 7) & 1;
 	c->zf = (psw >> 6) & 1;
 	c->hf = (psw >> 4) & 1;
@@ -370,6 +369,32 @@ static inline void i8080_xthl(struct i8080 *const c)
 	c->r.eg16[REG_HL] = val;
 }
 
+/*
+ * PUSH and POP helpers
+ */
+
+static inline void pop_rr(struct i8080 *const c, const uint8_t opcode)
+{
+	uint16_t reg = i8080_pop_stack(c);
+
+	if (RP(opcode) == 3)
+		i8080_set_psw(c, reg);
+	else
+		*(c->reg16_sp[RP(opcode)]) = reg;
+}
+
+static inline void push_rr(struct i8080 *const c, const uint8_t opcode)
+{
+	uint16_t reg;
+	int rp = RP(opcode);
+	if (rp < 3)
+		reg = *(c->reg16_sp[rp]);
+	else
+		reg = i8080_get_psw(c);
+
+	i8080_push_stack(c, reg);
+}
+
 // executes one opcode
 static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 {
@@ -389,7 +414,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	uint8_t ins = INSTRUCTION_TABLE[opcode];
 
 	// XXX Restrict processing to a subset during the migration
-	if (ins > DCX_RR)
+	if (ins > PUSH_RR)
 		goto do_opcode;
 	switch (ins) {
 	case MOV_R_R:
@@ -463,6 +488,12 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		break;
 	case DCX_RR:
 		*(c->reg16_sp[RP(opcode)]) -= 1;
+		break;
+	case POP_RR:
+		pop_rr(c, opcode);
+		break;
+	case PUSH_RR:
+		push_rr(c, opcode);
 		break;
 	default:
 		fprintf(stderr, "unhandled instruction %d (opcode %02x)\n",
@@ -689,32 +720,6 @@ do_opcode:
 	case 0xC9:
 		i8080_ret(c);
 		break;		// RET
-
-		// stack operation instructions
-	case 0xC5:
-		i8080_push_stack(c, c->r.eg16[REG_BC]);
-		break;		// PUSH B
-	case 0xD5:
-		i8080_push_stack(c, c->r.eg16[REG_DE]);
-		break;		// PUSH D
-	case 0xE5:
-		i8080_push_stack(c, c->r.eg16[REG_HL]);
-		break;		// PUSH H
-	case 0xF5:
-		i8080_push_psw(c);
-		break;		// PUSH PSW
-	case 0xC1:
-		c->r.eg16[REG_BC] = i8080_pop_stack(c);
-		break;		// POP B
-	case 0xD1:
-		c->r.eg16[REG_DE] = i8080_pop_stack(c);
-		break;		// POP D
-	case 0xE1:
-		c->r.eg16[REG_HL] = i8080_pop_stack(c);
-		break;		// POP H
-	case 0xF1:
-		i8080_pop_psw(c);
-		break;		// POP PSW
 
 		// input/output instructions
 	case 0xDB:		// IN
