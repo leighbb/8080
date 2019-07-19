@@ -1,11 +1,20 @@
 // SPDX-License-Identifier: MIT
 
+#include <stdlib.h>
+
 #include "i8080.h"
 #include "tables.h"
 
 #define SET_ZSP(c, val) do { \
 	c->zf = (val) == 0; c->sf = (val) >> 7; c->pf = parity(val); \
 } while(0)
+
+/*
+ * Opcode bitfield helpers
+ */
+
+static inline uint8_t SSS(uint8_t opcode) { return (opcode >> 0) & 7; }
+static inline uint8_t DDD(uint8_t opcode) { return (opcode >> 3) & 7; }
 
 /*
  * memory helpers (the only four to use `read_byte` and `write_byte` function
@@ -349,29 +358,29 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	if (c->interrupt_delay > 0)
 		c->interrupt_delay -= 1;
 
+	/*
+	 * Map the opcode to an instruction group.  Opcodes in the same
+	 * instruction group can be processed with the same code.
+	 */
+	uint8_t ins = INSTRUCTION_TABLE[opcode];
+
+	// XXX Restrict processing to a subset during the migration
+	if (ins > 0)
+		goto do_opcode;
+	switch (ins) {
+	case MOV_R_R:
+		*(c->reg8_table[DDD(opcode)]) = *(c->reg8_table[SSS(opcode)]);
+		break;
+	default:
+		fprintf(stderr, "unhandled instruction %d (opcode %02x)\n",
+			ins, opcode);
+		exit(1);
+	}
+	return;
+
+do_opcode:
 	switch (opcode) {
 		// 8 bit transfer instructions
-	case 0x7F:
-		c->r.eg8[REG_A] = c->r.eg8[REG_A];
-		break;		// MOV A,A
-	case 0x78:
-		c->r.eg8[REG_A] = c->r.eg8[REG_B];
-		break;		// MOV A,B
-	case 0x79:
-		c->r.eg8[REG_A] = c->r.eg8[REG_C];
-		break;		// MOV A,C
-	case 0x7A:
-		c->r.eg8[REG_A] = c->r.eg8[REG_D];
-		break;		// MOV A,D
-	case 0x7B:
-		c->r.eg8[REG_A] = c->r.eg8[REG_E];
-		break;		// MOV A,E
-	case 0x7C:
-		c->r.eg8[REG_A] = c->r.eg8[REG_H];
-		break;		// MOV A,H
-	case 0x7D:
-		c->r.eg8[REG_A] = c->r.eg8[REG_L];
-		break;		// MOV A,L
 	case 0x7E:
 		c->r.eg8[REG_A] = i8080_rb(c, c->r.eg16[REG_HL]);
 		break;		// MOV A,M
@@ -386,152 +395,26 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		c->r.eg8[REG_A] = i8080_rb(c, i8080_next_word(c));
 		break;		// LDA word
 
-	case 0x47:
-		c->r.eg8[REG_B] = c->r.eg8[REG_A];
-		break;		// MOV B,A
-	case 0x40:
-		c->r.eg8[REG_B] = c->r.eg8[REG_B];
-		break;		// MOV B,B
-	case 0x41:
-		c->r.eg8[REG_B] = c->r.eg8[REG_C];
-		break;		// MOV B,C
-	case 0x42:
-		c->r.eg8[REG_B] = c->r.eg8[REG_D];
-		break;		// MOV B,D
-	case 0x43:
-		c->r.eg8[REG_B] = c->r.eg8[REG_E];
-		break;		// MOV B,E
-	case 0x44:
-		c->r.eg8[REG_B] = c->r.eg8[REG_H];
-		break;		// MOV B,H
-	case 0x45:
-		c->r.eg8[REG_B] = c->r.eg8[REG_L];
-		break;		// MOV B,L
 	case 0x46:
 		c->r.eg8[REG_B] = i8080_rb(c, c->r.eg16[REG_HL]);
 		break;		// MOV B,M
 
-	case 0x4F:
-		c->r.eg8[REG_C] = c->r.eg8[REG_A];
-		break;		// MOV C,A
-	case 0x48:
-		c->r.eg8[REG_C] = c->r.eg8[REG_B];
-		break;		// MOV C,B
-	case 0x49:
-		c->r.eg8[REG_C] = c->r.eg8[REG_C];
-		break;		// MOV C,C
-	case 0x4A:
-		c->r.eg8[REG_C] = c->r.eg8[REG_D];
-		break;		// MOV C,D
-	case 0x4B:
-		c->r.eg8[REG_C] = c->r.eg8[REG_E];
-		break;		// MOV C,E
-	case 0x4C:
-		c->r.eg8[REG_C] = c->r.eg8[REG_H];
-		break;		// MOV C,H
-	case 0x4D:
-		c->r.eg8[REG_C] = c->r.eg8[REG_L];
-		break;		// MOV C,L
 	case 0x4E:
 		c->r.eg8[REG_C] = i8080_rb(c, c->r.eg16[REG_HL]);
 		break;		// MOV C,M
 
-	case 0x57:
-		c->r.eg8[REG_D] = c->r.eg8[REG_A];
-		break;		// MOV D,A
-	case 0x50:
-		c->r.eg8[REG_D] = c->r.eg8[REG_B];
-		break;		// MOV D,B
-	case 0x51:
-		c->r.eg8[REG_D] = c->r.eg8[REG_C];
-		break;		// MOV D,C
-	case 0x52:
-		c->r.eg8[REG_D] = c->r.eg8[REG_D];
-		break;		// MOV D,D
-	case 0x53:
-		c->r.eg8[REG_D] = c->r.eg8[REG_E];
-		break;		// MOV D,E
-	case 0x54:
-		c->r.eg8[REG_D] = c->r.eg8[REG_H];
-		break;		// MOV D,H
-	case 0x55:
-		c->r.eg8[REG_D] = c->r.eg8[REG_L];
-		break;		// MOV D,L
 	case 0x56:
 		c->r.eg8[REG_D] = i8080_rb(c, c->r.eg16[REG_HL]);
 		break;		// MOV D,M
 
-	case 0x5F:
-		c->r.eg8[REG_E] = c->r.eg8[REG_A];
-		break;		// MOV E,A
-	case 0x58:
-		c->r.eg8[REG_E] = c->r.eg8[REG_B];
-		break;		// MOV E,B
-	case 0x59:
-		c->r.eg8[REG_E] = c->r.eg8[REG_C];
-		break;		// MOV E,C
-	case 0x5A:
-		c->r.eg8[REG_E] = c->r.eg8[REG_D];
-		break;		// MOV E,D
-	case 0x5B:
-		c->r.eg8[REG_E] = c->r.eg8[REG_E];
-		break;		// MOV E,E
-	case 0x5C:
-		c->r.eg8[REG_E] = c->r.eg8[REG_H];
-		break;		// MOV E,H
-	case 0x5D:
-		c->r.eg8[REG_E] = c->r.eg8[REG_L];
-		break;		// MOV E,L
 	case 0x5E:
 		c->r.eg8[REG_E] = i8080_rb(c, c->r.eg16[REG_HL]);
 		break;		// MOV E,M
 
-	case 0x67:
-		c->r.eg8[REG_H] = c->r.eg8[REG_A];
-		break;		// MOV H,A
-	case 0x60:
-		c->r.eg8[REG_H] = c->r.eg8[REG_B];
-		break;		// MOV H,B
-	case 0x61:
-		c->r.eg8[REG_H] = c->r.eg8[REG_C];
-		break;		// MOV H,C
-	case 0x62:
-		c->r.eg8[REG_H] = c->r.eg8[REG_D];
-		break;		// MOV H,D
-	case 0x63:
-		c->r.eg8[REG_H] = c->r.eg8[REG_E];
-		break;		// MOV H,E
-	case 0x64:
-		c->r.eg8[REG_H] = c->r.eg8[REG_H];
-		break;		// MOV H,H
-	case 0x65:
-		c->r.eg8[REG_H] = c->r.eg8[REG_L];
-		break;		// MOV H,L
 	case 0x66:
 		c->r.eg8[REG_H] = i8080_rb(c, c->r.eg16[REG_HL]);
 		break;		// MOV H,M
 
-	case 0x6F:
-		c->r.eg8[REG_L] = c->r.eg8[REG_A];
-		break;		// MOV L,A
-	case 0x68:
-		c->r.eg8[REG_L] = c->r.eg8[REG_B];
-		break;		// MOV L,B
-	case 0x69:
-		c->r.eg8[REG_L] = c->r.eg8[REG_C];
-		break;		// MOV L,C
-	case 0x6A:
-		c->r.eg8[REG_L] = c->r.eg8[REG_D];
-		break;		// MOV L,D
-	case 0x6B:
-		c->r.eg8[REG_L] = c->r.eg8[REG_E];
-		break;		// MOV L,E
-	case 0x6C:
-		c->r.eg8[REG_L] = c->r.eg8[REG_H];
-		break;		// MOV L,H
-	case 0x6D:
-		c->r.eg8[REG_L] = c->r.eg8[REG_L];
-		break;		// MOV L,L
 	case 0x6E:
 		c->r.eg8[REG_L] = i8080_rb(c, c->r.eg16[REG_HL]);
 		break;		// MOV L,M
@@ -1169,6 +1052,9 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	case 0xCB:
 		i8080_jmp(c, i8080_next_word(c));
 		break;
+	default:
+		fprintf(stderr, "unhandled opcode %02x\n", opcode);
+		exit(1);
 	}
 }
 
@@ -1204,6 +1090,15 @@ void i8080_init(struct i8080 *const c)
 	c->write_byte = NULL;
 	c->port_in = NULL;
 	c->port_out = NULL;
+
+	c->reg8_table[0] = &c->r.eg8[REG_B];
+	c->reg8_table[1] = &c->r.eg8[REG_C];
+	c->reg8_table[2] = &c->r.eg8[REG_D];
+	c->reg8_table[3] = &c->r.eg8[REG_E];
+	c->reg8_table[4] = &c->r.eg8[REG_H];
+	c->reg8_table[5] = &c->r.eg8[REG_L];
+	c->reg8_table[6] = NULL;
+	c->reg8_table[7] = &c->r.eg8[REG_A];
 }
 
 // executes one instruction
