@@ -13,9 +13,9 @@
  * Opcode bitfield helpers
  */
 
-static inline uint8_t SSS(uint8_t opcode) { return (opcode >> 0) & 7; }
-static inline uint8_t DDD(uint8_t opcode) { return (opcode >> 3) & 7; }
-static inline uint8_t  RP(uint8_t opcode) { return (opcode >> 4) & 3; }
+static inline uint8_t SSS(const uint8_t opcode) { return (opcode >> 0) & 7; }
+static inline uint8_t DDD(const uint8_t opcode) { return (opcode >> 3) & 7; }
+static inline uint8_t  RP(const uint8_t opcode) { return (opcode >> 4) & 3; }
 
 /*
  * memory helpers (the only four to use `read_byte` and `write_byte` function
