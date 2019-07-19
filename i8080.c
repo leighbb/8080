@@ -365,7 +365,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	uint8_t ins = INSTRUCTION_TABLE[opcode];
 
 	// XXX Restrict processing to a subset during the migration
-	if (ins > SBB_R)
+	if (ins > ANA_R)
 		goto do_opcode;
 	switch (ins) {
 	case MOV_R_R:
@@ -389,6 +389,9 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	case SBB_R:
 		i8080_sub(c, &c->r.eg8[REG_A],
 			    *(c->reg8_table[SSS(opcode)]), c->cf);
+		break;
+	case ANA_R:
+		i8080_ana(c, *(c->reg8_table[SSS(opcode)]));
 		break;
 	default:
 		fprintf(stderr, "unhandled instruction %d (opcode %02x)\n",
@@ -680,27 +683,6 @@ do_opcode:
 		break;		// RAR
 
 		// logical byte instructions
-	case 0xA7:
-		i8080_ana(c, c->r.eg8[REG_A]);
-		break;		// ANA A
-	case 0xA0:
-		i8080_ana(c, c->r.eg8[REG_B]);
-		break;		// ANA B
-	case 0xA1:
-		i8080_ana(c, c->r.eg8[REG_C]);
-		break;		// ANA C
-	case 0xA2:
-		i8080_ana(c, c->r.eg8[REG_D]);
-		break;		// ANA D
-	case 0xA3:
-		i8080_ana(c, c->r.eg8[REG_E]);
-		break;		// ANA E
-	case 0xA4:
-		i8080_ana(c, c->r.eg8[REG_H]);
-		break;		// ANA H
-	case 0xA5:
-		i8080_ana(c, c->r.eg8[REG_L]);
-		break;		// ANA L
 	case 0xA6:
 		i8080_ana(c, i8080_rb(c, c->r.eg16[REG_HL]));
 		break;		// ANA M
