@@ -388,7 +388,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	uint8_t ins = INSTRUCTION_TABLE[opcode];
 
 	// XXX Restrict processing to a subset during the migration
-	if (ins > RCC)
+	if (ins > JCC_NN)
 		goto do_opcode;
 	switch (ins) {
 	case MOV_R_R:
@@ -435,6 +435,9 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		break;
 	case RCC:
 		i8080_cond_ret(c, condition(c, opcode));
+		break;
+	case JCC_NN:
+		i8080_cond_jmp(c, condition(c, opcode));
 		break;
 	default:
 		fprintf(stderr, "unhandled instruction %d (opcode %02x)\n",
@@ -716,30 +719,6 @@ do_opcode:
 	case 0xC3:
 		i8080_jmp(c, i8080_next_word(c));
 		break;		// JMP
-	case 0xC2:
-		i8080_cond_jmp(c, c->zf == 0);
-		break;		// JNZ
-	case 0xCA:
-		i8080_cond_jmp(c, c->zf == 1);
-		break;		// JZ
-	case 0xD2:
-		i8080_cond_jmp(c, c->cf == 0);
-		break;		// JNC
-	case 0xDA:
-		i8080_cond_jmp(c, c->cf == 1);
-		break;		// JC
-	case 0xE2:
-		i8080_cond_jmp(c, c->pf == 0);
-		break;		// JPO
-	case 0xEA:
-		i8080_cond_jmp(c, c->pf == 1);
-		break;		// JPE
-	case 0xF2:
-		i8080_cond_jmp(c, c->sf == 0);
-		break;		// JP
-	case 0xFA:
-		i8080_cond_jmp(c, c->sf == 1);
-		break;		// JM
 
 	case 0xE9:
 		c->pc = c->r.eg16[REG_HL];
