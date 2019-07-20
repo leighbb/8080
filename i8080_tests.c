@@ -41,7 +41,7 @@ static uint8_t port_in(void *userdata, uint8_t port)
 
 	// print from memory at (DE) until '$' char
 	else if (operation == 9) {
-		uint16_t addr = (c->r.eg8[REG_D] << 8) | c->r.eg8[REG_E];
+		uint16_t addr = c->r.eg16[REG_DE];
 		do {
 			printf("%c", rb(c, addr++));
 		} while (rb(c, addr) != '$');
