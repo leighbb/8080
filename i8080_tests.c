@@ -18,16 +18,19 @@ static bool test_finished = 0;
 
 static uint8_t rb(void *userdata, const uint16_t addr)
 {
+	(void)userdata;	// unused
 	return memory[addr];
 }
 
 static void wb(void *userdata, const uint16_t addr, const uint8_t val)
 {
+	(void)userdata;	// unused
 	memory[addr] = val;
 }
 
 static uint8_t port_in(void *userdata, uint8_t port)
 {
+	(void)port;	// unused
 	struct i8080 *const c = (struct i8080 *) userdata;
 
 	uint8_t operation = c->r.eg8[REG_C];
@@ -49,6 +52,9 @@ static uint8_t port_in(void *userdata, uint8_t port)
 
 static void port_out(void *userdata, uint8_t port, uint8_t value)
 {
+	(void)userdata;	// unused
+	(void)port;	// unused
+	(void)value;	// unused
 	test_finished = 1;
 }
 
