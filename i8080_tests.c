@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <inttypes.h>
+
 #include "i8080.h"
 
 // memory callbacks
@@ -91,7 +93,7 @@ static int load_file(const char *filename, uint16_t addr)
  * output
  */
 static void run_test(struct i8080 *const c, const char *filename,
-		     unsigned long cyc_expected)
+		     uint64_t cyc_expected)
 {
 	i8080_init(c);
 	c->userdata = c;
@@ -107,16 +109,17 @@ static void run_test(struct i8080 *const c, const char *filename,
 	printf("*** TEST: %s\n", filename);
 
 	c->pc = 0x100;
-	// inject "out 1,a" at 0x0000 (signal to stop the test)
+	// inject "out 0h" at 0x0000 (signal to stop the test)
 	memory[0x0000] = 0xD3;
 	memory[0x0001] = 0x00;
 
-	// inject "in a,0" at 0x0005 (signal to output some characters)
+	// inject "in 0h" at 0x0005 (signal to output some characters)
 	memory[0x0005] = 0xDB;
 	memory[0x0006] = 0x00;
 	memory[0x0007] = 0xC9;
 
-	long nb_instructions = 0;
+	uint64_t nb_instructions = 0;
+	uint64_t cyc_count = 0;
 
 	test_finished = 0;
 	while (!test_finished) {
@@ -124,19 +127,21 @@ static void run_test(struct i8080 *const c, const char *filename,
 
 		/*
 		 * uncomment the following line to have a debug output of 
-		 * the Z80 state.  Warning: will output multiple GB of data 
+		 * the 8080 state.  Warning: will output multiple GB of data
 		 * for the whole test suite
 		 */
 #ifdef I8080_DEBUG_OUTPUT
 		i8080_debug_output(c);
 #endif
 		i8080_step(c);
+		cyc_count += c->cyc;
+		c->cyc = 0;
 	}
 
-	long long diff = cyc_expected - c->cyc;
-	printf("\n*** %lu instructions executed on %lu cycles"
-	       " (expected=%lu, diff=%lld)\n\n",
-	       nb_instructions, c->cyc, cyc_expected, diff);
+	int64_t diff = cyc_expected - cyc_count;
+	printf("\n*** %"PRIu64" instructions executed on %"PRIu64" cycles"
+	       " (expected=%"PRIu64", diff=%"PRIi64")\n\n",
+	       nb_instructions, cyc_count, cyc_expected, diff);
 }
 
 int main(void)

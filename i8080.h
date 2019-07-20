@@ -166,12 +166,12 @@ enum {
 struct i8080 {
 	union {
 		uint8_t eg8[10];	// B, C, D, E, H, L, A, F, S, P
-		uint16_t eg16[10];	// BC, DE, HL, AF, SP
+		uint16_t eg16[5];	// BC, DE, HL, AF, SP
 	} r;
 	uint16_t pc;			// program counter
 	bool sf, zf, hf, pf, cf, iff;	// flags:sign, zero, half-carry, parity,
 					// carry, interrupt flip-flop
-	unsigned long cyc;		// cycle count
+	uint32_t cyc;			// cycle count
 	bool halted;
 	bool interrupt_pending;
 	uint8_t interrupt_vector;
@@ -181,9 +181,9 @@ struct i8080 {
 
 	// memory + io interface
 	void *userdata;			// general purpose pointer for the user
-	uint8_t(*read_byte) (void *, uint16_t);
+	uint8_t (*read_byte)(void *, uint16_t);
 	void (*write_byte)(void *, uint16_t, uint8_t);
-	uint8_t(*port_in) (void *, uint8_t);
+	uint8_t (*port_in)(void *, uint8_t);
 	void (*port_out)(void *, uint8_t, uint8_t);
 };
 
