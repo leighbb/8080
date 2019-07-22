@@ -436,8 +436,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 	 * when DI is executed, interrupts won't be serviced
 	 * until the end of next instruction:
 	 */
-	if (c->interrupt_delay > 0)
-		c->interrupt_delay -= 1;
+	c->interrupt_delay = 0;
 
 	/*
 	 * Map the opcode to an instruction group.  Opcodes in the same
