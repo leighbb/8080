@@ -9,10 +9,6 @@
  * flags helpers
  */
 
-#define SET_ZSP(c, val) do { \
-	c->zf = (val) == 0; c->sf = (val) >> 7; c->pf = parity(val); \
-} while(0)
-
 static inline uint8_t szpr_flags(uint8_t v)
 {
 	return SZPR_FLAGS_TABLE[v];
@@ -119,84 +115,105 @@ static inline uint16_t i8080_pop_stack(struct i8080 *const c)
  * opcodes
  */
 
-// returns the parity of byte: 0 if number of 1 bits in `val` is odd, else 1
-static inline bool parity(uint8_t val)
-{
-	uint8_t nb_one_bits = 0;
-	for (int i = 0; i < 8; i++) {
-		nb_one_bits += ((val >> i) & 1);
-	}
-
-	return (nb_one_bits & 1) == 0;
-}
-
-/*
- * returns if there was a carry between bit "bit_no" and "bit_no - 1" when
- * executing "a + b + cy"
- */
-static inline bool carry(int bit_no, uint8_t a, uint8_t b, const bool cy)
-{
-	int16_t result = a + b + cy;
-	int16_t carry = result ^ a ^ b;
-	return carry & (1 << bit_no);
-}
-
 // adds a value (+ an optional carry flag) to a register
-static inline void i8080_add(struct i8080 *const c, uint8_t * const reg,
-			     const uint8_t val, const bool cy)
+static inline uint8_t i8080_add(struct i8080 *const c, const uint8_t b,
+				    const int ci)
 {
-	const uint8_t result = *reg + val + cy;
-	c->cf = carry(8, *reg, val, cy);
-	c->hf = carry(4, *reg, val, cy);
-	SET_ZSP(c, result);
-	*reg = result;
+	int a, r, z;
+	uint8_t f;
+
+	a = c->r.eg8[REG_A];
+	r = a + b + ci;
+	z = a ^ b ^ r;
+	f = (z & (1 << FLAG_AUX_CARRY));
+	f |= szpr_flags(r);
+	f |= (r >> (8 - FLAG_CARRY)) & (1 << FLAG_CARRY);
+
+	c->r.eg8[REG_F] = f;
+	return r;
 }
 
 // subtracts a byte (+ an optional carry flag) from a register
-static inline void i8080_sub(struct i8080 *const c, uint8_t * const reg,
-			     const uint8_t val, const bool cy)
+static inline uint8_t i8080_sub(struct i8080 *const c, const uint8_t b,
+				    const int bi)
 {
 	// https://stackoverflow.com/a/8037485
-	i8080_add(c, reg, ~val, !cy);
-	c->cf = !c->cf;
+	uint8_t r = i8080_add(c, ~b, !bi);
+	c->r.eg8[REG_F] ^= (1 << FLAG_CARRY);
+	return r;
 }
 
 // adds a word to HL
 static inline void i8080_dad(struct i8080 *const c, const uint16_t val)
 {
-	c->cf = ((c->r.eg16[REG_HL] + val) >> 16) & 1;
-	c->r.eg16[REG_HL] += val;
+	uint16_t hl, f;
+	int r;
+
+	hl = c->r.eg16[REG_HL];
+	f = c->r.eg8[REG_F];
+	r = hl + val;
+	f &= ~(1 << FLAG_CARRY);
+	f |= (r >> (16 - FLAG_CARRY)) & (1 << FLAG_CARRY);
+
+	c->r.eg16[REG_HL] = r;
+	c->r.eg8[REG_F] = f;
 }
 
 // increments a byte
 static inline uint8_t i8080_inr(struct i8080 *const c, const uint8_t val)
 {
-	const uint8_t result = val + 1;
-	c->hf = (result & 0xF) == 0;
-	SET_ZSP(c, result);
-	return result;
+	const uint8_t r = val + 1;
+	int f = c->r.eg8[REG_F];
+
+	f &= ~((1 << FLAG_SIGN) |
+	       (1 << FLAG_ZERO) | (1 << FLAG_PARITY) | (1 << FLAG_AUX_CARRY));
+
+	if ((r & 0x0f) == 0)
+		f |= (1 << FLAG_AUX_CARRY);
+
+	f |= szpr_flags(r);
+
+	c->r.eg8[REG_F] = f;
+
+	return r;
 }
 
 // decrements a byte
 static inline uint8_t i8080_dcr(struct i8080 *const c, const uint8_t val)
 {
-	const uint8_t result = val - 1;
-	c->hf = !((result & 0xF) == 0xF);
-	SET_ZSP(c, result);
-	return result;
+	const uint8_t r = val - 1;
+	int f = c->r.eg8[REG_F];
+
+	f &= ~((1 << FLAG_SIGN) |
+	       (1 << FLAG_ZERO) | (1 << FLAG_PARITY) | (1 << FLAG_AUX_CARRY));
+
+	if ((r & 0x0f) != 0x0f)
+		f |= (1 << FLAG_AUX_CARRY);
+
+	f |= szpr_flags(r);
+
+	c->r.eg8[REG_F] = f;
+	return r;
 }
 
 /*
  * executes a logic "and" between register A and a byte, then stores the
  * result in register A
+ *
+ * NB: The 8080 logical AND instructions set the auxiliary carry flag bit 
+ * to reflect the logical OR of bit 3 of the operands.
  */
 static inline void i8080_ana(struct i8080 *const c, const uint8_t val)
 {
-	uint8_t result = c->r.eg8[REG_A] & val;
-	c->cf = 0;
-	c->hf = ((c->r.eg8[REG_A] | val) & 0x08) != 0;
-	SET_ZSP(c, result);
-	c->r.eg8[REG_A] = result;
+	int a, r, f;
+
+	a = c->r.eg8[REG_A];
+	r = a & val;
+	f = (((a | val) & (1 << 3)) << (FLAG_AUX_CARRY - 3));
+	f |= szpr_flags(r);
+
+	c->r.eg8[REG_A] = r;
+	c->r.eg8[REG_F] = f;
 }
 
 /*
@@ -205,10 +222,14 @@ static inline void i8080_ana(struct i8080 *const c, const uint8_t val)
  */
 static inline void i8080_xra(struct i8080 *const c, const uint8_t val)
 {
-	c->r.eg8[REG_A] ^= val;
-	c->cf = 0;
-	c->hf = 0;
-	SET_ZSP(c, c->r.eg8[REG_A]);
+	uint8_t a, r, f;
+
+	a = c->r.eg8[REG_A];
+	r = a ^ val;
+	f = szpr_flags(r);
+
+	c->r.eg8[REG_A] = r;
+	c->r.eg8[REG_F] = f;
 }
 
 /*
@@ -217,19 +238,30 @@ static inline void i8080_xra(struct i8080 *const c, const uint8_t val)
  */
 static inline void i8080_ora(struct i8080 *const c, const uint8_t val)
 {
-	c->r.eg8[REG_A] |= val;
-	c->cf = 0;
-	c->hf = 0;
-	SET_ZSP(c, c->r.eg8[REG_A]);
+	uint8_t a, r, f;
+
+	a = c->r.eg8[REG_A];
+	r = a | val;
+	f = szpr_flags(r);
+
+	c->r.eg8[REG_A] = r;
+	c->r.eg8[REG_F] = f;
 }
 
 // compares the register A to another byte
 static inline void i8080_cmp(struct i8080 *const c, const uint8_t val)
 {
-	const int16_t result = c->r.eg8[REG_A] - val;
-	c->cf = result >> 8;
-	c->hf = ~(c->r.eg8[REG_A] ^ result ^ val) & 0x10;
-	SET_ZSP(c, result & 0xFF);
+	int a, r, z;
+	uint8_t f;
+
+	a = c->r.eg8[REG_A];
+	r = a + ~val + 1;
+	z = a ^ ~val ^ r;
+	f = z & (1 << FLAG_AUX_CARRY);
+	f |= szpr_flags(r);
+	f |= (r >> (8 - FLAG_CARRY)) & (1 << FLAG_CARRY);
+
+	c->r.eg8[REG_F] = f;
 }
 
 // sets the program counter to a given address
@@ -241,24 +273,12 @@ static inline void i8080_jmp(struct i8080 *const c, const uint16_t addr)
 // Determine condition based on the bitfield in the opcode
 static inline bool condition(struct i8080 *const c, const uint8_t opcode)
 {
-	switch (opcode >> 3 & 7) {
-	case 0:
-		return c->zf == 0;
-	case 1:
-		return c->zf == 1;
-	case 2:
-		return c->cf == 0;
-	case 3:
-		return c->cf == 1;
-	case 4:
-		return c->pf == 0;
-	case 5:
-		return c->pf == 1;
-	case 6:
-		return c->sf == 0;
-	default:
-		return c->sf == 1;
-	}
+	static const uint8_t cond_table[4] = { FLAG_ZERO, FLAG_CARRY,
+		FLAG_PARITY, FLAG_SIGN
+	};
+	int t = c->r.eg8[REG_F] >> cond_table[(opcode >> 4) & 3];
+	t ^= opcode >> 3;
+	return (t & 1) == 0;
 }
 
 /*
@@ -304,61 +324,52 @@ static inline void i8080_cond_ret(struct i8080 *const c, const bool condition)
 	}
 }
 
-// construct PSW from the A register and flag variables
-static inline uint16_t i8080_get_psw(struct i8080 *const c)
-{
-	// note: bit 3 and 5 are always 0
-	uint16_t psw = 0;
-	psw |= c->sf << 7;
-	psw |= c->zf << 6;
-	psw |= c->hf << 4;
-	psw |= c->pf << 2;
-	psw |= 1 << 1;		// bit 1 is always 1
-	psw |= c->cf << 0;
-	psw |= c->r.eg8[REG_A] << 8;
-
-	return psw;
-}
-
-// set the A register and flag variables from the given PSW word
-static inline void i8080_set_psw(struct i8080 *const c, const uint16_t psw)
-{
-	c->r.eg8[REG_A] = psw >> 8;
-	c->sf = (psw >> 7) & 1;
-	c->zf = (psw >> 6) & 1;
-	c->hf = (psw >> 4) & 1;
-	c->pf = (psw >> 2) & 1;
-	c->cf = (psw >> 0) & 1;
-}
-
 // rotate register A left
 static inline void i8080_rlc(struct i8080 *const c)
 {
-	c->cf = c->r.eg8[REG_A] >> 7;
-	c->r.eg8[REG_A] = (c->r.eg8[REG_A] << 1) | c->cf;
+	int f = c->r.eg8[REG_F] & ~(1 << FLAG_CARRY);
+	int cb = c->r.eg8[REG_A] >> 7;
+	f |= cb << FLAG_CARRY;
+	c->r.eg8[REG_A] = (c->r.eg8[REG_A] << 1) | cb;
+	c->r.eg8[REG_F] = f;
 }
 
 // rotate register A right
 static inline void i8080_rrc(struct i8080 *const c)
 {
-	c->cf = c->r.eg8[REG_A] & 1;
-	c->r.eg8[REG_A] = (c->r.eg8[REG_A] >> 1) | (c->cf << 7);
+	int f = c->r.eg8[REG_F] & ~(1 << FLAG_CARRY);
+	int cb = c->r.eg8[REG_A] & 1;
+	f |= cb << FLAG_CARRY;
+	c->r.eg8[REG_A] = (c->r.eg8[REG_A] >> 1) | (cb << 7);
+	c->r.eg8[REG_F] = f;
 }
 
 // rotate register A left with the carry flag
 static inline void i8080_ral(struct i8080 *const c)
 {
-	const bool cy = c->cf;
-	c->cf = c->r.eg8[REG_A] >> 7;
-	c->r.eg8[REG_A] = (c->r.eg8[REG_A] << 1) | cy;
+	int a, f, cb;
+
+	a = c->r.eg8[REG_A];
+	f = c->r.eg8[REG_F];
+	cb = (f >> FLAG_CARRY) & 0x01;
+	f &= ~(1 << FLAG_CARRY);
+	f |= (a >> (7 - FLAG_CARRY));
+	c->r.eg8[REG_A] = (a << 1) | cb;
+	c->r.eg8[REG_F] = f;
 }
 
 // rotate register A right with the carry flag
 static inline void i8080_rar(struct i8080 *const c)
 {
-	const bool cy = c->cf;
-	c->cf = c->r.eg8[REG_A] & 1;
-	c->r.eg8[REG_A] = (c->r.eg8[REG_A] >> 1) | (cy << 7);
+	int a, f, cb;
+
+	a = c->r.eg8[REG_A];
+	f = c->r.eg8[REG_F];
+	cb = (f >> FLAG_CARRY) & 0x01;
+	f &= ~(1 << FLAG_CARRY);
+	f |= ((a & 1) << FLAG_CARRY);
+	c->r.eg8[REG_A] = (a >> 1) | (cb << 7);
+	c->r.eg8[REG_F] = f;
 }
 
 /*
@@ -368,21 +379,24 @@ static inline void i8080_rar(struct i8080 *const c)
  */
 static inline void i8080_daa(struct i8080 *const c)
 {
-	bool cy = c->cf;
+	int cy = c->r.eg8[REG_F] & (1 << FLAG_CARRY);
+	int ac = c->r.eg8[REG_F] & (1 << FLAG_AUX_CARRY);
+	uint8_t a = c->r.eg8[REG_A];
 	uint8_t correction = 0;
 
-	const uint8_t lsb = c->r.eg8[REG_A] & 0x0F;
-	const uint8_t msb = c->r.eg8[REG_A] >> 4;
-
-	if (c->hf || lsb > 9)
+	if (ac || (a & 0x0f) > 9) {
 		correction += 0x06;
-
-	if (c->cf || msb > 9 || (msb >= 9 && lsb > 9)) {
-		correction += 0x60;
-		cy = 1;
 	}
-	i8080_add(c, &c->r.eg8[REG_A], correction, 0);
-	c->cf = cy;
+	if (cy || (a > 0x99)) {
+		correction += 0x60;
+		cy = 1 << FLAG_CARRY;
+	}
+
+	int r = a + correction;
+	int z = a ^ correction ^ r;
+
+	c->r.eg8[REG_A] = r;
+	c->r.eg8[REG_F] = (z & (1 << FLAG_AUX_CARRY)) | szpr_flags(r) | cy;
 }
 
 // switches the value of registers DE and HL
@@ -409,22 +423,17 @@ static inline void pop_rr(struct i8080 *const c, const uint8_t opcode)
 {
 	uint16_t reg = i8080_pop_stack(c);
 
-	if (RP(opcode) == 3)
-		i8080_set_psw(c, reg);
-	else
-		*rp16_sp(c, opcode) = reg;
+	if (RP(opcode) == 3) {
+		reg &= ~(1 << FLAG_RESERVED_2 | 1 << FLAG_RESERVED_3);
+		reg |= 1 << FLAG_RESERVED_1;
+	}
+
+	*rp16_psw(c, opcode) = reg;
 }
 
 static inline void push_rr(struct i8080 *const c, const uint8_t opcode)
 {
-	uint16_t reg;
-	int rp = RP(opcode);
-	if (rp < 3)
-		reg = *rp16_sp(c, opcode);
-	else
-		reg = i8080_get_psw(c);
-
-	i8080_push_stack(c, reg);
+	i8080_push_stack(c, *rp16_psw(c, opcode));
 }
 
 // executes one opcode
@@ -452,16 +461,18 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		*dst8(c, opcode) = i8080_next_byte(c);
 		break;
 	case ADD_R:
-		i8080_add(c, &c->r.eg8[REG_A], *src8(c, opcode), 0);
+		c->r.eg8[REG_A] = i8080_add(c, *src8(c, opcode), 0);
 		break;
 	case ADC_R:
-		i8080_add(c, &c->r.eg8[REG_A], *src8(c, opcode), c->cf);
+		c->r.eg8[REG_A] = i8080_add(c, *src8(c, opcode),
+				is_carry_set(c));
 		break;
 	case SUB_R:
-		i8080_sub(c, &c->r.eg8[REG_A], *src8(c, opcode), 0);
+		c->r.eg8[REG_A] = i8080_sub(c, *src8(c, opcode), 0);
 		break;
 	case SBB_R:
-		i8080_sub(c, &c->r.eg8[REG_A], *src8(c, opcode), c->cf);
+		c->r.eg8[REG_A] = i8080_sub(c, *src8(c, opcode),
+				is_carry_set(c));
 		break;
 	case ANA_R:
 		i8080_ana(c, *src8(c, opcode));
@@ -473,7 +484,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		i8080_ora(c, *src8(c, opcode));
 		break;
 	case CMP_R:
-		i8080_cmp(c, *src8(c, opcode));
+		(void)i8080_sub(c, *src8(c, opcode), 0);
 		break;
 	case INR_R:
 		*dst8(c, opcode) = i8080_inr(c, *dst8(c, opcode));
@@ -518,16 +529,18 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		push_rr(c, opcode);
 		break;
 	case ADI_N:
-		i8080_add(c, &c->r.eg8[REG_A], i8080_next_byte(c), 0);
+		c->r.eg8[REG_A] = i8080_add(c, i8080_next_byte(c), 0);
 		break;
 	case ACI_N:
-		i8080_add(c, &c->r.eg8[REG_A], i8080_next_byte(c), c->cf);
+		c->r.eg8[REG_A] = i8080_add(c, i8080_next_byte(c),
+				is_carry_set(c));
 		break;
 	case SUI_N:
-		i8080_sub(c, &c->r.eg8[REG_A], i8080_next_byte(c), 0);
+		c->r.eg8[REG_A] = i8080_sub(c, i8080_next_byte(c), 0);
 		break;
 	case SBI_N:
-		i8080_sub(c, &c->r.eg8[REG_A], i8080_next_byte(c), c->cf);
+		c->r.eg8[REG_A] = i8080_sub(c, i8080_next_byte(c),
+				is_carry_set(c));
 		break;
 	case ANI_N:
 		i8080_ana(c, i8080_next_byte(c));
@@ -542,20 +555,22 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		i8080_cmp(c, i8080_next_byte(c));
 		break;
 	case ADD_M:
-		i8080_add(c, &c->r.eg8[REG_A],
-			  i8080_rb(c, c->r.eg16[REG_HL]), 0);
+		c->r.eg8[REG_A] = i8080_add(c,
+				i8080_rb(c, c->r.eg16[REG_HL]), 0);
 		break;
 	case ADC_M:
-		i8080_add(c, &c->r.eg8[REG_A],
-			  i8080_rb(c, c->r.eg16[REG_HL]), c->cf);
+		c->r.eg8[REG_A] = i8080_add(c,
+				i8080_rb(c, c->r.eg16[REG_HL]),
+				is_carry_set(c));
 		break;
 	case SUB_M:
-		i8080_sub(c, &c->r.eg8[REG_A],
-			  i8080_rb(c, c->r.eg16[REG_HL]), 0);
+		c->r.eg8[REG_A] = i8080_sub(c,
+				i8080_rb(c, c->r.eg16[REG_HL]), 0);
 		break;
 	case SBB_M:
-		i8080_sub(c, &c->r.eg8[REG_A],
-			  i8080_rb(c, c->r.eg16[REG_HL]), c->cf);
+		c->r.eg8[REG_A] = i8080_sub(c,
+				i8080_rb(c, c->r.eg16[REG_HL]),
+				is_carry_set(c));
 		break;
 	case ANA_M:
 		i8080_ana(c, i8080_rb(c, c->r.eg16[REG_HL]));
@@ -594,7 +609,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		c->r.eg8[REG_A] = ~c->r.eg8[REG_A];
 		break;
 	case CMC:
-		c->cf = !c->cf;
+		c->r.eg8[REG_F] ^= (1 << FLAG_CARRY);
 		break;
 	case DAA:
 		i8080_daa(c);
@@ -657,7 +672,7 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		i8080_wb(c, i8080_next_word(c), c->r.eg8[REG_A]);
 		break;
 	case STC:
-		c->cf = 1;
+		c->r.eg8[REG_F] |= (1 << FLAG_CARRY);
 		break;
 	case XCHG:
 		i8080_xchg(c);
@@ -677,20 +692,11 @@ void i8080_init(struct i8080 *const c)
 {
 	c->pc = 0;
 	c->r.eg16[REG_SP] = 0;
+	c->r.eg16[REG_BC] = 0;
+	c->r.eg16[REG_DE] = 0;
+	c->r.eg16[REG_HL] = 0;
+	c->r.eg16[REG_AF] = 0x0002;
 
-	c->r.eg8[REG_A] = 0;
-	c->r.eg8[REG_B] = 0;
-	c->r.eg8[REG_C] = 0;
-	c->r.eg8[REG_D] = 0;
-	c->r.eg8[REG_E] = 0;
-	c->r.eg8[REG_H] = 0;
-	c->r.eg8[REG_L] = 0;
-
-	c->sf = 0;
-	c->zf = 0;
-	c->hf = 0;
-	c->pf = 0;
-	c->cf = 0;
 	c->iff = 0;
 
 	c->cyc = 0;
@@ -796,18 +802,10 @@ print2:
 
 void i8080_debug_output(struct i8080 *const c)
 {
-	uint8_t f = 0;
-	f |= c->sf << 7;
-	f |= c->zf << 6;
-	f |= c->hf << 4;
-	f |= c->pf << 2;
-	f |= 1 << 1;		// bit 1 is always 1
-	f |= c->cf << 0;
-
 	printf("PC:%04X AF:%04X BC:%04X DE:%04X HL:%04X SP:%04X T:%6lu "
 	       "I:%c%c  ",
 	       c->pc,
-	       c->r.eg8[REG_A] << 8 | f,
+	       c->r.eg16[REG_AF],
 	       c->r.eg16[REG_BC],
 	       c->r.eg16[REG_DE],
 	       c->r.eg16[REG_HL],
@@ -820,4 +818,3 @@ void i8080_debug_output(struct i8080 *const c)
 }
 #endif // I8080_DEBUG_OUTPUT
 
-#undef SET_ZSP

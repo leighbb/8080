@@ -23,7 +23,7 @@ enum {
 	REG_H,
 	REG_L,
 	REG_A,
-	REG_F,		// Not using this yet
+	REG_F,
 	REG_S,
 	REG_P
 };
@@ -37,7 +37,7 @@ enum {
 	REG_D,
 	REG_L,
 	REG_H,
-	REG_F,		// Not using this yet
+	REG_F,
 	REG_A,
 	REG_P,
 	REG_S
@@ -169,9 +169,8 @@ struct i8080 {
 		uint16_t eg16[5];	// BC, DE, HL, AF, SP
 	} r;
 	uint16_t pc;			// program counter
-	bool sf, zf, hf, pf, cf, iff;	// flags:sign, zero, half-carry, parity,
-					// carry, interrupt flip-flop
 	uint32_t cyc;			// cycle count
+	bool iff;			// interrupt flip-flop
 	bool halted;
 	bool interrupt_pending;
 	uint8_t interrupt_vector;
