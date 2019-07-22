@@ -30,6 +30,11 @@ static inline uint16_t *rp16_sp(struct i8080 *const c, const uint8_t opcode)
 	return c->reg16_sp[RP(opcode)];
 }
 
+static inline uint16_t *rp16_psw(struct i8080 *const c, const uint8_t opcode)
+{
+	return c->reg16_psw[RP(opcode)];
+}
+
 /*
  * memory helpers (the only four to use `read_byte` and `write_byte` function
  * pointers)
@@ -696,9 +701,10 @@ void i8080_init(struct i8080 *const c)
 	c->reg8_table[6] = NULL;
 	c->reg8_table[7] = &c->r.eg8[REG_A];
 
-	c->reg16_sp[0] = &c->r.eg16[REG_BC];
-	c->reg16_sp[1] = &c->r.eg16[REG_DE];
-	c->reg16_sp[2] = &c->r.eg16[REG_HL];
+	c->reg16_psw[0] = c->reg16_sp[0] = &c->r.eg16[REG_BC];
+	c->reg16_psw[1] = c->reg16_sp[1] = &c->r.eg16[REG_DE];
+	c->reg16_psw[2] = c->reg16_sp[2] = &c->r.eg16[REG_HL];
+	c->reg16_psw[3] = &c->r.eg16[REG_AF];
 	c->reg16_sp[3] = &c->r.eg16[REG_SP];
 }
 
