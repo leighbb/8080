@@ -5,9 +5,23 @@
 #include "i8080.h"
 #include "tables.h"
 
+/*
+ * flags helpers
+ */
+
 #define SET_ZSP(c, val) do { \
 	c->zf = (val) == 0; c->sf = (val) >> 7; c->pf = parity(val); \
 } while(0)
+
+static inline uint8_t szpr_flags(uint8_t v)
+{
+	return SZPR_FLAGS_TABLE[v];
+}
+
+static inline int is_carry_set(struct i8080 *const c)
+{
+	return (c->r.eg8[REG_F] & (1 << FLAG_CARRY)) != 0;
+}
 
 /*
  * Opcode bitfield helpers
