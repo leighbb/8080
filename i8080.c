@@ -133,7 +133,7 @@ static inline void i8080_add(struct i8080 *const c, uint8_t * const reg,
 	*reg = result;
 }
 
-// substracts a byte (+ an optional carry flag) from a register
+// subtracts a byte (+ an optional carry flag) from a register
 static inline void i8080_sub(struct i8080 *const c, uint8_t * const reg,
 			     const uint8_t val, const bool cy)
 {
