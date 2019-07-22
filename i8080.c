@@ -13,9 +13,22 @@
  * Opcode bitfield helpers
  */
 
-static inline uint8_t SSS(const uint8_t opcode) { return (opcode >> 0) & 7; }
-static inline uint8_t DDD(const uint8_t opcode) { return (opcode >> 3) & 7; }
 static inline uint8_t  RP(const uint8_t opcode) { return (opcode >> 4) & 3; }
+
+static inline uint8_t *dst8(struct i8080 *const c, const uint8_t opcode)
+{
+	return c->reg8_table[opcode >> 3 & 7];
+}
+
+static inline uint8_t *src8(struct i8080 *const c, const uint8_t opcode)
+{
+	return c->reg8_table[opcode >> 0 & 7];
+}
+
+static inline uint16_t *rp16_sp(struct i8080 *const c, const uint8_t opcode)
+{
+	return c->reg16_sp[RP(opcode)];
+}
 
 /*
  * memory helpers (the only four to use `read_byte` and `write_byte` function
@@ -380,7 +393,7 @@ static inline void pop_rr(struct i8080 *const c, const uint8_t opcode)
 	if (RP(opcode) == 3)
 		i8080_set_psw(c, reg);
 	else
-		*(c->reg16_sp[RP(opcode)]) = reg;
+		*rp16_sp(c, opcode) = reg;
 }
 
 static inline void push_rr(struct i8080 *const c, const uint8_t opcode)
@@ -388,7 +401,7 @@ static inline void push_rr(struct i8080 *const c, const uint8_t opcode)
 	uint16_t reg;
 	int rp = RP(opcode);
 	if (rp < 3)
-		reg = *(c->reg16_sp[rp]);
+		reg = *rp16_sp(c, opcode);
 	else
 		reg = i8080_get_psw(c);
 
@@ -415,46 +428,40 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 
 	switch (ins) {
 	case MOV_R_R:
-		*(c->reg8_table[DDD(opcode)]) = *(c->reg8_table[SSS(opcode)]);
+		*dst8(c, opcode) = *src8(c, opcode);
 		break;
 	case MVI_R_N:
-		*(c->reg8_table[DDD(opcode)]) = i8080_next_byte(c);
+		*dst8(c, opcode) = i8080_next_byte(c);
 		break;
 	case ADD_R:
-		i8080_add(c, &c->r.eg8[REG_A],
-			    *(c->reg8_table[SSS(opcode)]), 0);
+		i8080_add(c, &c->r.eg8[REG_A], *src8(c, opcode), 0);
 		break;
 	case ADC_R:
-		i8080_add(c, &c->r.eg8[REG_A],
-			    *(c->reg8_table[SSS(opcode)]), c->cf);
+		i8080_add(c, &c->r.eg8[REG_A], *src8(c, opcode), c->cf);
 		break;
 	case SUB_R:
-		i8080_sub(c, &c->r.eg8[REG_A],
-			    *(c->reg8_table[SSS(opcode)]), 0);
+		i8080_sub(c, &c->r.eg8[REG_A], *src8(c, opcode), 0);
 		break;
 	case SBB_R:
-		i8080_sub(c, &c->r.eg8[REG_A],
-			    *(c->reg8_table[SSS(opcode)]), c->cf);
+		i8080_sub(c, &c->r.eg8[REG_A], *src8(c, opcode), c->cf);
 		break;
 	case ANA_R:
-		i8080_ana(c, *(c->reg8_table[SSS(opcode)]));
+		i8080_ana(c, *src8(c, opcode));
 		break;
 	case XRA_R:
-		i8080_xra(c, *(c->reg8_table[SSS(opcode)]));
+		i8080_xra(c, *src8(c, opcode));
 		break;
 	case ORA_R:
-		i8080_ora(c, *(c->reg8_table[SSS(opcode)]));
+		i8080_ora(c, *src8(c, opcode));
 		break;
 	case CMP_R:
-		i8080_cmp(c, *(c->reg8_table[SSS(opcode)]));
+		i8080_cmp(c, *src8(c, opcode));
 		break;
 	case INR_R:
-		*(c->reg8_table[DDD(opcode)]) =
-			i8080_inr(c, *(c->reg8_table[DDD(opcode)]));
+		*dst8(c, opcode) = i8080_inr(c, *dst8(c, opcode));
 		break;
 	case DCR_R:
-		*(c->reg8_table[DDD(opcode)]) =
-			i8080_dcr(c, *(c->reg8_table[DDD(opcode)]));
+		*dst8(c, opcode) = i8080_dcr(c, *dst8(c, opcode));
 		break;
 	case RCC:
 		i8080_cond_ret(c, condition(c, opcode));
@@ -469,22 +476,22 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 		i8080_call(c, opcode & 0x38);
 		break;
 	case LXI_RR_NN:
-		*(c->reg16_sp[RP(opcode)]) = i8080_next_word(c);
+		*rp16_sp(c, opcode) = i8080_next_word(c);
 		break;
 	case STAX_RR: // Only BC & DE
-		i8080_wb(c, *(c->reg16_sp[RP(opcode)]), c->r.eg8[REG_A]);
+		i8080_wb(c, *rp16_sp(c, opcode), c->r.eg8[REG_A]);
 		break;
 	case INX_RR:
-		*(c->reg16_sp[RP(opcode)]) += 1;
+		*rp16_sp(c, opcode) += 1;
 		break;
 	case DAD_RR:
-		i8080_dad(c, *(c->reg16_sp[RP(opcode)]));
+		i8080_dad(c, *rp16_sp(c, opcode));
 		break;
 	case LDAX_RR: // Only BC & DE
-		c->r.eg8[REG_A] = i8080_rb(c, *(c->reg16_sp[RP(opcode)]));
+		c->r.eg8[REG_A] = i8080_rb(c, *rp16_sp(c, opcode));
 		break;
 	case DCX_RR:
-		*(c->reg16_sp[RP(opcode)]) -= 1;
+		*rp16_sp(c, opcode) -= 1;
 		break;
 	case POP_RR:
 		pop_rr(c, opcode);
@@ -553,10 +560,10 @@ static inline void i8080_execute(struct i8080 *const c, uint8_t opcode)
 			i8080_dcr(c, i8080_rb(c, c->r.eg16[REG_HL])));
 		break;
 	case MOV_M_R:
-		i8080_wb(c, c->r.eg16[REG_HL], *(c->reg8_table[SSS(opcode)]));
+		i8080_wb(c, c->r.eg16[REG_HL], *src8(c, opcode));
 		break;
 	case MOV_R_M:
-		*(c->reg8_table[DDD(opcode)]) = i8080_rb(c, c->r.eg16[REG_HL]);
+		*dst8(c, opcode) = i8080_rb(c, c->r.eg16[REG_HL]);
 		break;
 	case MVI_M_N:
 		i8080_wb(c, c->r.eg16[REG_HL], i8080_next_byte(c));
